@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WAI Social Brain - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .stat-card { transition: all 0.3s ease; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .nav-item { transition: all 0.2s ease; }
+        .nav-item:hover { padding-left: 1.75rem; }
+        .nav-item.active { background-color: #2563eb; }
+        .calendar-cell { min-height: 80px; border: 1px solid #e5e7eb; }
+        .post-item { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-slate-900 text-white flex flex-col">
+            <!-- Logo -->
+            <div class="p-6 border-b border-slate-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white">W</div>
+                    <div>
+                        <h1 class="font-bold text-lg">WAI Social</h1>
+                        <p class="text-xs text-slate-400">Brain</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="mt-6 flex-1">
+                <a href="#" class="nav-item active flex items-center gap-3 px-6 py-3 bg-blue-600 text-white">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item flex items-center gap-3 px-6 py-3 text-slate-300 hover:bg-slate-800">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Content</span>
+                </a>
+                <a href="#" class="nav-item flex items-center gap-3 px-6 py-3 text-slate-300 hover:bg-slate-800">
+                    <i class="fas fa-eye"></i>
+                    <span>Competitors</span>
+                </a>
+                <a href="#" class="nav-item flex items-center gap-3 px-6 py-3 text-slate-300 hover:bg-slate-800">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="#" class="nav-item flex items-center gap-3 px-6 py-3 text-slate-300 hover:bg-slate-800">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+
+            <!-- Quick Tip -->
+            <div class="p-6 border-t border-slate-700">
+                <div class="bg-slate-800 rounded-lg p-4">
+                    <p class="text-sm font-medium text-white mb-2">💡 Quick Tip</p>
+                    <p class="text-xs text-slate-300">Use keyboard shortcuts to navigate faster. Press <kbd>?</kbd> for help.</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6">
+                <div class="flex items-center gap-4 flex-1">
+                    <div class="hidden md:flex items-center bg-gray-100 rounded-lg px-4 py-2 flex-1 max-w-md">
+                        <i class="fas fa-search text-gray-400"></i>
+                        <input type="text" placeholder="Search content, accounts..." class="bg-transparent ml-2 outline-none flex-1 text-sm">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span class="text-xs text-gray-500">Connected</span>
+                    </div>
+                    <button class="relative p-2 hover:bg-gray-100 rounded-lg">
+                        <i class="fas fa-bell text-gray-600"></i>
+                        <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                    <button class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">D</div>
+                        <span class="text-sm text-gray-700">Demo</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="flex-1 overflow-y-auto">
+                <div class="max-w-7xl mx-auto px-6 py-8">
+                    <!-- Header -->
+                    <div class="mb-6">
+                        <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+                        <p class="text-gray-500 mt-2">Welcome back! Here's your content overview.</p>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                        <div class="stat-card bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">Total Content</p>
+                                    <p class="text-3xl font-bold text-gray-900 mt-2">42</p>
+                                    <p class="text-xs text-gray-500 mt-2">+12%</p>
+                                </div>
+                                <div class="p-3 bg-gray-100 rounded-lg"><i class="fas fa-eye text-blue-600 text-lg"></i></div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">Approved</p>
+                                    <p class="text-3xl font-bold text-gray-900 mt-2">15</p>
+                                    <p class="text-xs text-gray-500 mt-2">Ready to publish</p>
+                                </div>
+                                <div class="p-3 bg-gray-100 rounded-lg"><i class="fas fa-arrow-trend-up text-green-600 text-lg"></i></div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">Published</p>
+                                    <p class="text-3xl font-bold text-gray-900 mt-2">8</p>
+                                    <p class="text-xs text-gray-500 mt-2">This week</p>
+                                </div>
+                                <div class="p-3 bg-gray-100 rounded-lg"><i class="fas fa-message text-purple-600 text-lg"></i></div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">Accounts</p>
+                                    <p class="text-3xl font-bold text-gray-900 mt-2">3</p>
+                                    <p class="text-xs text-gray-500 mt-2">Connected</p>
+                                </div>
+                                <div class="p-3 bg-gray-100 rounded-lg"><i class="fas fa-chart-bar text-orange-600 text-lg"></i></div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">Engagement</p>
+                                    <p class="text-3xl font-bold text-gray-900 mt-2">2.3K</p>
+                                    <p class="text-xs text-gray-500 mt-2">234 comments</p>
+                                </div>
+                                <div class="p-3 bg-gray-100 rounded-lg"><i class="fas fa-heart text-red-600 text-lg"></i></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Content Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                        <!-- Calendar -->
+                        <div class="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-calendar text-blue-600"></i>
+                                    <h2 class="text-lg font-semibold text-gray-900">Content Calendar</h2>
+                                </div>
+                                <button class="text-sm text-blue-600 hover:text-blue-700">View Full</button>
+                            </div>
+
+                            <div class="space-y-3">
+                                <div class="border-l-4 border-blue-600 pl-4 py-2 post-item">
+                                    <p class="text-sm font-medium text-gray-900">2024-05-28</p>
+                                    <div class="mt-1 space-y-1">
+                                        <div class="text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                                            <span class="font-medium">Morning Motivation Monday</span>
+                                            <span class="mx-1">•</span>
+                                            <span class="text-gray-500">instagram</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="border-l-4 border-blue-600 pl-4 py-2 post-item">
+                                    <p class="text-sm font-medium text-gray-900">2024-05-28</p>
+                                    <div class="mt-1 space-y-1">
+                                        <div class="text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                                            <span class="font-medium">Quick Productivity Tips</span>
+                                            <span class="mx-1">•</span>
+                                            <span class="text-gray-500">instagram</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="border-l-4 border-blue-600 pl-4 py-2 post-item">
+                                    <p class="text-sm font-medium text-gray-900">2024-05-28</p>
+                                    <div class="mt-1 space-y-1">
+                                        <div class="text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                                            <span class="font-medium">Daily Newsletter</span>
+                                            <span class="mx-1">•</span>
+                                            <span class="text-gray-500">telegram</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="border-l-4 border-blue-600 pl-4 py-2 post-item">
+                                    <p class="text-sm font-medium text-gray-900">2024-05-29</p>
+                                    <div class="mt-1 space-y-1">
+                                        <div class="text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                                            <span class="font-medium">Behind The Scenes</span>
+                                            <span class="mx-1">•</span>
+                                            <span class="text-gray-500">instagram</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <div class="flex items-center gap-2 mb-6">
+                                <i class="fas fa-clock text-purple-600"></i>
+                                <h2 class="text-lg font-semibold text-gray-900">Recent Activity</h2>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <p class="text-xs font-semibold text-gray-600 uppercase mb-3">Content Updates</p>
+                                    <div class="space-y-2">
+                                        <div class="text-sm text-gray-700 p-2 hover:bg-gray-50 rounded">
+                                            <p class="font-medium">Morning Motivation</p>
+                                            <p class="text-xs text-gray-500">instagram • approved</p>
+                                        </div>
+                                        <div class="text-sm text-gray-700 p-2 hover:bg-gray-50 rounded">
+                                            <p class="font-medium">Productivity Tips</p>
+                                            <p class="text-xs text-gray-500">instagram • approved</p>
+                                        </div>
+                                        <div class="text-sm text-gray-700 p-2 hover:bg-gray-50 rounded">
+                                            <p class="font-medium">Newsletter</p>
+                                            <p class="text-xs text-gray-500">telegram • scheduled</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="pt-4 border-t border-gray-200">
+                                    <p class="text-xs font-semibold text-gray-600 uppercase mb-3">Upcoming</p>
+                                    <div class="space-y-2">
+                                        <div class="text-sm text-gray-700 p-2 hover:bg-gray-50 rounded">
+                                            <p class="font-medium">TikTok Challenge</p>
+                                            <p class="text-xs text-gray-500">tiktok</p>
+                                        </div>
+                                        <div class="text-sm text-gray-700 p-2 hover:bg-gray-50 rounded">
+                                            <p class="font-medium">Product Showcase</p>
+                                            <p class="text-xs text-gray-500">instagram</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <button class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
+                                <p class="text-sm font-medium text-gray-700">📝 Create Post</p>
+                            </button>
+                            <button class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
+                                <p class="text-sm font-medium text-gray-700">📅 View Calendar</p>
+                            </button>
+                            <button class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
+                                <p class="text-sm font-medium text-gray-700">📊 Analyze</p>
+                            </button>
+                            <button class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
+                                <p class="text-sm font-medium text-gray-700">⚙️ Settings</p>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
