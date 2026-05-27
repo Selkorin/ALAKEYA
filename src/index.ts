@@ -5,6 +5,8 @@ import { WebhookController } from './controllers/WebhookController';
 import { DemoController } from './controllers/DemoController';
 import { AuthController } from './controllers/AuthController';
 import { PublishingController } from './controllers/PublishingController';
+import { ContentController } from './controllers/ContentController';
+import { SchedulerService } from './services/SchedulerService';
 
 dotenv.config();
 
@@ -15,10 +17,15 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Services
+const schedulerService = new SchedulerService();
+
 // Initialize database
 AppDataSource.initialize()
   .then(() => {
     console.log('✅ Database connection established');
+    // Start scheduler
+    schedulerService.start();
   })
   .catch(error => console.log('⚠️ Database initialization warning:', error.message));
 
@@ -27,6 +34,7 @@ const webhookController = new WebhookController();
 const demoController = new DemoController();
 const authController = new AuthController();
 const publishingController = new PublishingController();
+const contentController = new ContentController();
 
 // Health & Demo
 app.get('/health', (req, res) => {
@@ -66,18 +74,63 @@ app.get('/content/:contentItemId/status', (req, res) =>
   publishingController.getContentStatus(req, res)
 );
 
+// Content Generation Routes
+app.post('/content/generate/plan', (req, res) =>
+  contentController.generateForPlan(req, res)
+);
+
+app.post('/content/generate/single', (req, res) =>
+  contentController.generateSingle(req, res)
+);
+
+app.post('/content/:contentItemId/regenerate', (req, res) =>
+  contentController.regenerate(req, res)
+);
+
+// Calendar & Analytics Routes
+app.get('/calendar', (req, res) =>
+  contentController.getCalendar(req, res)
+);
+
+app.get('/history', (req, res) =>
+  contentController.getHistory(req, res)
+);
+
+app.get('/analytics', (req, res) =>
+  contentController.getAnalytics(req, res)
+);
+
+app.get('/scheduled', (req, res) =>
+  contentController.getScheduled(req, res)
+);
+
 app.listen(PORT, () => {
   console.log(`\n✅ WAI Social Agent running on port ${PORT}\n`);
   console.log(`🌐 Dashboard: http://localhost:${PORT}/demo`);
   console.log(`💚 Health check: http://localhost:${PORT}/health`);
   console.log(`🔗 Webhook endpoint: http://localhost:${PORT}/webhook/task`);
+
   console.log(`\n🔐 OAuth Endpoints:`);
   console.log(`   Instagram: GET /auth/instagram/url`);
   console.log(`   VK: GET /auth/vk/url`);
   console.log(`   Telegram: POST /auth/telegram/connect`);
+
   console.log(`\n📤 Publishing Endpoints:`);
   console.log(`   Publish: POST /publish/:contentItemId`);
   console.log(`   Approve: POST /content/:contentItemId/approve`);
   console.log(`   Schedule: POST /content/:contentItemId/schedule`);
-  console.log(`   Status: GET /content/:contentItemId/status\n`);
+  console.log(`   Status: GET /content/:contentItemId/status`);
+
+  console.log(`\n🤖 Content Generation Endpoints:`);
+  console.log(`   Generate Plan: POST /content/generate/plan`);
+  console.log(`   Generate Single: POST /content/generate/single`);
+  console.log(`   Regenerate: POST /content/:contentItemId/regenerate`);
+
+  console.log(`\n📅 Calendar & Analytics Endpoints:`);
+  console.log(`   Calendar: GET /calendar?socialAccountId=uuid&month=2024-12`);
+  console.log(`   History: GET /history?socialAccountId=uuid&limit=50`);
+  console.log(`   Analytics: GET /analytics?days=7&socialAccountId=uuid`);
+  console.log(`   Scheduled: GET /scheduled`);
+
+  console.log(`\n⏱️ Scheduler: Auto-publishes content at scheduled times (every minute)\n`);
 });

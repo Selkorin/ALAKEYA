@@ -1,6 +1,7 @@
 import { AppDataSource } from '../config/database';
 import { SocialAccount } from '../entities/SocialAccount';
 import { ContentItem } from '../entities/ContentItem';
+import { PublishingHistory } from '../entities/PublishingHistory';
 import { TelegramAdapter } from '../adapters/TelegramAdapter';
 import { InstagramAdapter } from '../adapters/InstagramAdapter';
 import { TokenEncryption } from '../utils/encryption';
@@ -58,11 +59,51 @@ export class PublishingService {
       contentItem.platformPostId = result.postId;
       await contentItemRepo.save(contentItem);
 
+      // Save to publishing history
+      const historyRepo = AppDataSource.getRepository(PublishingHistory);
+      const history = historyRepo.create({
+        contentItemId: contentItem.id,
+        socialAccountId: contentPlan.socialAccountId,
+        platform: contentItem.platform,
+        platformPostId: result.postId,
+        postUrl: result.url,
+        status: 'success',
+        contentSnapshot: {
+          title: contentItem.title,
+          caption: contentItem.caption,
+          hashtags: contentItem.hashtags || [],
+          imageUrl: contentItem.imageUrl,
+          videoUrl: contentItem.videoUrl,
+        },
+      });
+      await historyRepo.save(history);
+
       return result;
     } catch (error: any) {
       contentItem.status = 'failed';
       contentItem.errorMessage = error.message;
       await contentItemRepo.save(contentItem);
+
+      // Save failed attempt to history
+      const historyRepo = AppDataSource.getRepository(PublishingHistory);
+      const history = historyRepo.create({
+        contentItemId: contentItem.id,
+        socialAccountId: contentPlan.socialAccountId,
+        platform: contentItem.platform,
+        platformPostId: '',
+        postUrl: '',
+        status: 'failed',
+        errorMessage: error.message,
+        contentSnapshot: {
+          title: contentItem.title,
+          caption: contentItem.caption,
+          hashtags: contentItem.hashtags || [],
+          imageUrl: contentItem.imageUrl,
+          videoUrl: contentItem.videoUrl,
+        },
+      });
+      await historyRepo.save(history);
+
       throw error;
     }
   }
