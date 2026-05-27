@@ -10,7 +10,10 @@ import { ContentController } from './controllers/ContentController';
 import { ImportController } from './controllers/ImportController';
 import { CompetitorAnalysisController } from './controllers/CompetitorAnalysisController';
 import { GoogleDriveController } from './controllers/GoogleDriveController';
+import { DashboardController } from './controllers/DashboardController';
+import { APIController } from './controllers/APIController';
 import { SchedulerService } from './services/SchedulerService';
+import { SeedDataService } from './services/SeedDataService';
 
 dotenv.config();
 
@@ -29,8 +32,19 @@ const schedulerService = new SchedulerService();
 
 // Initialize database
 AppDataSource.initialize()
-  .then(() => {
+  .then(async () => {
     console.log('✅ Database connection established');
+
+    // Seed data if enabled and database is empty
+    if (process.env.SEED_DATA_ENABLED === 'true') {
+      const seedService = new SeedDataService();
+      try {
+        await seedService.seedAll();
+      } catch (error: any) {
+        console.log('⚠️ Seeding warning:', error.message);
+      }
+    }
+
     // Start scheduler
     schedulerService.start();
   })
@@ -45,6 +59,8 @@ const contentController = new ContentController();
 const importController = new ImportController();
 const competitorController = new CompetitorAnalysisController();
 const googleDriveController = new GoogleDriveController();
+const dashboardController = new DashboardController();
+const apiController = new APIController();
 
 // Health & Demo
 app.get('/health', (req, res) => {
@@ -193,6 +209,54 @@ app.post('/drive/share', (req, res) =>
   googleDriveController.shareWithUser(req, res)
 );
 
+// REST API Endpoints (for Frontend)
+app.get('/api/health', (req, res) => apiController.health(req, res));
+
+// Dashboard endpoints
+app.get('/api/dashboard/stats', (req, res) =>
+  dashboardController.getStats(req, res)
+);
+
+app.get('/api/dashboard/activity', (req, res) =>
+  dashboardController.getRecentActivity(req, res)
+);
+
+app.get('/api/dashboard/calendar', (req, res) =>
+  dashboardController.getCalendar(req, res)
+);
+
+app.get('/api/dashboard/analytics', (req, res) =>
+  dashboardController.getAnalytics(req, res)
+);
+
+// Content API
+app.get('/api/content', (req, res) => apiController.listContent(req, res));
+app.post('/api/content', (req, res) => apiController.createContent(req, res));
+app.get('/api/content/:id', (req, res) => apiController.getContent(req, res));
+app.put('/api/content/:id', (req, res) =>
+  apiController.updateContent(req, res)
+);
+app.delete('/api/content/:id', (req, res) =>
+  apiController.deleteContent(req, res)
+);
+
+// Social Accounts API
+app.get('/api/socials', (req, res) =>
+  apiController.listSocialAccounts(req, res)
+);
+app.get('/api/socials/:id', (req, res) =>
+  apiController.getSocialAccount(req, res)
+);
+
+// Content Plans API
+app.get('/api/plans', (req, res) => apiController.listContentPlans(req, res));
+app.post('/api/plans', (req, res) =>
+  apiController.createContentPlan(req, res)
+);
+app.get('/api/plans/:id', (req, res) =>
+  apiController.getContentPlan(req, res)
+);
+
 app.listen(PORT, () => {
   console.log(`\n✅ WAI Social Agent running on port ${PORT}\n`);
   console.log(`🌐 Dashboard: http://localhost:${PORT}/demo`);
@@ -246,5 +310,16 @@ app.listen(PORT, () => {
   console.log(`   Sync Plan: POST /drive/sync-plan`);
   console.log(`   List Files: GET /drive/files?accessToken=...`);
   console.log(`   Delete Content: POST /drive/delete`);
-  console.log(`   Share Content: POST /drive/share\n`);
+  console.log(`   Share Content: POST /drive/share`);
+
+  console.log(`\n🔌 REST API Endpoints (for Frontend):`);
+  console.log(`   Health: GET /api/health`);
+  console.log(`   Dashboard Stats: GET /api/dashboard/stats`);
+  console.log(`   Dashboard Activity: GET /api/dashboard/activity`);
+  console.log(`   Dashboard Calendar: GET /api/dashboard/calendar`);
+  console.log(`   Dashboard Analytics: GET /api/dashboard/analytics`);
+  console.log(`   Content List: GET /api/content`);
+  console.log(`   Content CRUD: POST|GET|PUT|DELETE /api/content/:id`);
+  console.log(`   Social Accounts: GET /api/socials`);
+  console.log(`   Content Plans: GET|POST /api/plans\n`);
 });

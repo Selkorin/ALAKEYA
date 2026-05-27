@@ -5,6 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node src/index.ts",
+    "seed": "ts-node src/scripts/seed.ts",
+    "seed:reset": "SEED_CLEAR=true npm run seed",
     "build": "tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
@@ -26,7 +28,8 @@
     "bcryptjs": "^2.4.3",
     "multer": "^1.4.5-lts.1",
     "csv-parse": "^5.5.0",
-    "googleapis": "^118.0.0"
+    "googleapis": "^118.0.0",
+    "sqlite3": "^5.1.6"
   },
   "devDependencies": {
     "typescript": "^5.2.2",

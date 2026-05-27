@@ -1,0 +1,77 @@
+version: '3.9'
+
+services:
+  # Backend API Server
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wai-backend
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=development
+      - USE_SQLITE=true
+      - DB_PATH=./data/wai.db
+      - PORT=3000
+      - SEED_DATA_ENABLED=true
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-sk-ant-demo}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-demo}
+      - JWT_SECRET=dev-secret-key
+      - CORS_ORIGIN=http://localhost:3001
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+    command: npm run dev
+    networks:
+      - wai-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Frontend - React/Vite
+  frontend:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: wai-frontend
+    ports:
+      - '3001:3001'
+    environment:
+      - VITE_API_URL=http://localhost:3000/api
+    volumes:
+      - ./web/src:/app/src
+      - ./web/public:/app/public
+    command: npm run dev
+    networks:
+      - wai-network
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Optional: PostgreSQL for production-like testing
+  postgres:
+    image: postgres:15-alpine
+    container_name: wai-postgres
+    environment:
+      POSTGRES_DB: wai_social_agent
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - wai-network
+    profiles:
+      - with-postgres
+
+networks:
+  wai-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
