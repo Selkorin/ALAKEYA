@@ -47,6 +47,9 @@ export class ContentItem {
   @Column({ nullable: true })
   errorMessage: string;
 
+  @Column({ nullable: true })
+  googleDriveFileId: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

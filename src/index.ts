@@ -9,6 +9,7 @@ import { PublishingController } from './controllers/PublishingController';
 import { ContentController } from './controllers/ContentController';
 import { ImportController } from './controllers/ImportController';
 import { CompetitorAnalysisController } from './controllers/CompetitorAnalysisController';
+import { GoogleDriveController } from './controllers/GoogleDriveController';
 import { SchedulerService } from './services/SchedulerService';
 
 dotenv.config();
@@ -43,6 +44,7 @@ const publishingController = new PublishingController();
 const contentController = new ContentController();
 const importController = new ImportController();
 const competitorController = new CompetitorAnalysisController();
+const googleDriveController = new GoogleDriveController();
 
 // Health & Demo
 app.get('/health', (req, res) => {
@@ -158,6 +160,39 @@ app.post('/analysis/:analysisId/send-to-agents', (req, res) =>
   competitorController.sendRecommendationsToAgents(req, res)
 );
 
+// Google Drive Integration Routes
+app.get('/auth/google/url', (req, res) =>
+  googleDriveController.getGoogleDriveAuthUrl(req, res)
+);
+
+app.get('/auth/google/callback', (req, res) =>
+  googleDriveController.googleDriveCallback(req, res)
+);
+
+app.post('/drive/upload', (req, res) =>
+  googleDriveController.uploadToGoogleDrive(req, res)
+);
+
+app.post('/drive/download', (req, res) =>
+  googleDriveController.downloadFromGoogleDrive(req, res)
+);
+
+app.post('/drive/sync-plan', (req, res) =>
+  googleDriveController.syncContentPlan(req, res)
+);
+
+app.get('/drive/files', (req, res) =>
+  googleDriveController.listGoogleDriveFiles(req, res)
+);
+
+app.post('/drive/delete', (req, res) =>
+  googleDriveController.deleteFromGoogleDrive(req, res)
+);
+
+app.post('/drive/share', (req, res) =>
+  googleDriveController.shareWithUser(req, res)
+);
+
 app.listen(PORT, () => {
   console.log(`\n✅ WAI Social Agent running on port ${PORT}\n`);
   console.log(`🌐 Dashboard: http://localhost:${PORT}/demo`);
@@ -201,5 +236,15 @@ app.listen(PORT, () => {
   console.log(`   Analyze Competitor: POST /analyze/competitor`);
   console.log(`   Get Analysis: GET /analysis/:analysisId`);
   console.log(`   List Analyses: GET /analyses?projectId=uuid`);
-  console.log(`   Send to Agents: POST /analysis/:analysisId/send-to-agents\n`);
+  console.log(`   Send to Agents: POST /analysis/:analysisId/send-to-agents`);
+
+  console.log(`\n☁️ Google Drive Integration Endpoints:`);
+  console.log(`   Auth URL: GET /auth/google/url`);
+  console.log(`   Auth Callback: GET /auth/google/callback?code=...`);
+  console.log(`   Upload Content: POST /drive/upload`);
+  console.log(`   Download Content: POST /drive/download`);
+  console.log(`   Sync Plan: POST /drive/sync-plan`);
+  console.log(`   List Files: GET /drive/files?accessToken=...`);
+  console.log(`   Delete Content: POST /drive/delete`);
+  console.log(`   Share Content: POST /drive/share\n`);
 });
