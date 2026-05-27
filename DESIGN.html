@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WAI Social Brain - Дизайн</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f7; }
+
+    .container { display: flex; height: 100vh; }
+
+    .sidebar {
+      width: 280px;
+      background: #1a1a2e;
+      color: white;
+      padding: 30px 20px;
+      overflow-y: auto;
+    }
+
+    .logo { font-size: 24px; font-weight: 700; margin-bottom: 50px; }
+
+    .menu-item {
+      padding: 12px 0;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 14px;
+      margin-bottom: 10px;
+      transition: all 0.3s;
+    }
+
+    .menu-item:hover { color: white; transform: translateX(5px); }
+    .menu-item.active { color: #667eea; font-weight: 600; }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #f5f5f7;
+    }
+
+    .header {
+      background: white;
+      padding: 30px 40px;
+      border-bottom: 1px solid #e5e5e7;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .header h1 { font-size: 28px; color: #1a1a2e; }
+
+    .content {
+      flex: 1;
+      padding: 40px;
+      overflow-y: auto;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid #e5e5e7;
+      transition: all 0.3s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      border-color: #667eea;
+    }
+
+    .card-title { font-size: 16px; font-weight: 600; color: #1a1a2e; margin-bottom: 16px; }
+
+    .card-info {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+
+    .info-item { color: #666; }
+    .status { color: #34c759; font-weight: 500; }
+
+    .card-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #f5f5f7;
+      color: #1a1a2e;
+      border: 1px solid #e5e5e7;
+    }
+
+    .btn-secondary:hover {
+      background: #efefef;
+    }
+
+    .add-btn {
+      padding: 14px 28px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .add-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 40px;
+      color: #999;
+    }
+
+    .empty-state h2 { font-size: 20px; color: #666; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; margin-bottom: 24px; }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active { display: flex; }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .modal-title { font-size: 24px; font-weight: 600; margin-bottom: 24px; }
+
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .platform-btn {
+      padding: 20px;
+      border: 2px solid #e5e5e7;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .platform-btn:hover {
+      border-color: #667eea;
+      background: #f5f7ff;
+    }
+
+    .agent-panel {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 24px;
+      border: 1px solid #e5e5e7;
+    }
+
+    .agent-panel h3 { margin-bottom: 16px; color: #1a1a2e; }
+
+    .chat-box {
+      background: #f5f5f7;
+      border-radius: 8px;
+      padding: 16px;
+      height: 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 12px;
+      overflow-y: auto;
+      font-size: 13px;
+    }
+
+    .message {
+      padding: 8px 12px;
+      border-radius: 6px;
+      max-width: 80%;
+    }
+
+    .message.user {
+      background: #667eea;
+      color: white;
+      align-self: flex-end;
+    }
+
+    .message.bot {
+      background: white;
+      border: 1px solid #e5e5e7;
+      color: #666;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid #e5e5e7;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="logo">🧠 WAI</div>
+      <div class="menu-item active">Соцсети</div>
+      <div class="menu-item">Контент-планы</div>
+      <div class="menu-item">Аналитика</div>
+      <div class="menu-item">Настройки</div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main">
+      <!-- Header -->
+      <div class="header">
+        <h1>Социальные сети</h1>
+      </div>
+
+      <!-- Content -->
+      <div class="content">
+        <div id="connected-view">
+          <div class="cards-grid">
+            <!-- Instagram Card -->
+            <div class="card">
+              <div class="card-title">📸 Instagram — WAI Marketing</div>
+              <div class="card-info">
+                <div class="info-item"><span class="status">✅ Подключено</span></div>
+                <div class="info-item">Агент: SMM Agent активен</div>
+                <div class="info-item">📋 14 постов в плане</div>
+                <div class="info-item">⏰ Завтра в 12:00</div>
+              </div>
+              <div class="card-buttons">
+                <button class="btn btn-primary">+ Контент</button>
+                <button class="btn btn-secondary">План</button>
+                <button class="btn btn-secondary">Редактировать</button>
+              </div>
+            </div>
+
+            <!-- Telegram Card -->
+            <div class="card">
+              <div class="card-title">💬 Telegram — WAI Bot</div>
+              <div class="card-info">
+                <div class="info-item"><span class="status">✅ Подключено</span></div>
+                <div class="info-item">Агент: SMM Agent активен</div>
+                <div class="info-item">📋 8 постов в плане</div>
+                <div class="info-item">⏰ Сегодня в 19:00</div>
+              </div>
+              <div class="card-buttons">
+                <button class="btn btn-primary">+ Контент</button>
+                <button class="btn btn-secondary">План</button>
+                <button class="btn btn-secondary">Редактировать</button>
+              </div>
+            </div>
+
+            <!-- VK Card -->
+            <div class="card">
+              <div class="card-title">🔵 VK — WAI Community</div>
+              <div class="card-info">
+                <div class="info-item"><span class="status">✅ Подключено</span></div>
+                <div class="info-item">Агент: SMM Agent активен</div>
+                <div class="info-item">📋 10 постов в плане</div>
+                <div class="info-item">⏰ Запланировано</div>
+              </div>
+              <div class="card-buttons">
+                <button class="btn btn-primary">+ Контент</button>
+                <button class="btn btn-secondary">План</button>
+                <button class="btn btn-secondary">Редактировать</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Agent Chat Panel -->
+          <div class="agent-panel">
+            <h3>🤖 Чат с AI-агентом</h3>
+            <div class="chat-box">
+              <div class="message bot">Привет! Я готов помочь с контент-планом. Загрузи файлы с информацией о бренде.</div>
+              <div class="message user">Создай план на неделю для Instagram</div>
+              <div class="message bot">✅ Готово! Создал 7 постов + 7 историй. Посмотри в календаре.</div>
+            </div>
+            <div class="input-group">
+              <input type="text" placeholder="Напиши задачу агенту...">
+              <button class="btn btn-primary">Отправить</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal для подключения -->
+  <div class="modal" id="connectModal">
+    <div class="modal-content">
+      <div class="modal-title">Выбери соцсеть</div>
+      <div class="modal-grid">
+        <button class="platform-btn">📸 Instagram</button>
+        <button class="platform-btn">💬 Telegram</button>
+        <button class="platform-btn">🔵 VK</button>
+        <button class="platform-btn">▶️ YouTube</button>
+        <button class="platform-btn">🎵 TikTok</button>
+        <button class="platform-btn">👥 Facebook</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.target.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          e.target.style.transform = '';
+        }, 200);
+      });
+    });
+  </script>
+</body>
+</html>
