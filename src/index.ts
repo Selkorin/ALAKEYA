@@ -1,17 +1,22 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import multer from 'multer';
 import { AppDataSource } from './config/database';
 import { WebhookController } from './controllers/WebhookController';
 import { DemoController } from './controllers/DemoController';
 import { AuthController } from './controllers/AuthController';
 import { PublishingController } from './controllers/PublishingController';
 import { ContentController } from './controllers/ContentController';
+import { ImportController } from './controllers/ImportController';
 import { SchedulerService } from './services/SchedulerService';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Multer setup for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Middleware
 app.use(express.json());
@@ -35,6 +40,7 @@ const demoController = new DemoController();
 const authController = new AuthController();
 const publishingController = new PublishingController();
 const contentController = new ContentController();
+const importController = new ImportController();
 
 // Health & Demo
 app.get('/health', (req, res) => {
@@ -104,6 +110,35 @@ app.get('/scheduled', (req, res) =>
   contentController.getScheduled(req, res)
 );
 
+// Import/Export Routes
+app.post('/import/:contentPlanId/csv', upload.single('file'), (req, res) =>
+  importController.importCSV(req, res)
+);
+
+app.post('/import/:contentPlanId/json', upload.single('file'), (req, res) =>
+  importController.importJSON(req, res)
+);
+
+app.post('/schedules/bulk-update', (req, res) =>
+  importController.updateSchedules(req, res)
+);
+
+app.get('/export/:contentPlanId/csv', (req, res) =>
+  importController.exportCSV(req, res)
+);
+
+app.get('/export/:contentPlanId/json', (req, res) =>
+  importController.exportJSON(req, res)
+);
+
+app.get('/import/template/csv', (req, res) =>
+  importController.getCSVTemplate(req, res)
+);
+
+app.get('/import/template/json', (req, res) =>
+  importController.getJSONTemplate(req, res)
+);
+
 app.listen(PORT, () => {
   console.log(`\n✅ WAI Social Agent running on port ${PORT}\n`);
   console.log(`🌐 Dashboard: http://localhost:${PORT}/demo`);
@@ -132,5 +167,14 @@ app.listen(PORT, () => {
   console.log(`   Analytics: GET /analytics?days=7&socialAccountId=uuid`);
   console.log(`   Scheduled: GET /scheduled`);
 
-  console.log(`\n⏱️ Scheduler: Auto-publishes content at scheduled times (every minute)\n`);
+  console.log(`\n⏱️ Scheduler: Auto-publishes content at scheduled times (every minute)`);
+
+  console.log(`\n📥 Import/Export Endpoints:`);
+  console.log(`   Import CSV: POST /import/:contentPlanId/csv (with file)`);
+  console.log(`   Import JSON: POST /import/:contentPlanId/json (with file)`);
+  console.log(`   Export CSV: GET /export/:contentPlanId/csv`);
+  console.log(`   Export JSON: GET /export/:contentPlanId/json`);
+  console.log(`   CSV Template: GET /import/template/csv`);
+  console.log(`   JSON Template: GET /import/template/json`);
+  console.log(`   Bulk Update Schedules: POST /schedules/bulk-update\n`);
 });
