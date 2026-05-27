@@ -1,330 +1,400 @@
-# WAI Social Brain — AI SMM Agent for Social Networks
+# 🧠 WAI Social Brain - Complete AI SMM System
 
-Intelligent social media management system that creates content plans, generates posts, manages assets, and automates publication across multiple social networks.
+**AI-powered Social Media Management System** with intelligent content creation, scheduling, analytics, and competitor analysis.
 
-## 🎯 Features
-
-- **Multi-platform support**: Instagram, Telegram, VK, YouTube, TikTok
-- **AI-powered agent**: Understands your brand and creates contextual content
-- **Multiple AI providers**: Claude, OpenAI, Gemini (extensible)
-- **Content planning**: Automatic 7-14 day plans
-- **Knowledge base**: Upload files, references, brand guidelines
-- **Approval workflow**: Manual review before publishing
-- **Webhook integration**: Integrate with your own server at `85.239.51.246`
-- **Publishing scheduler**: Automatic post scheduling
-
-## 📋 Architecture
-
-```
-┌─────────────────────────────────────────┐
-│  WAI Admin Panel                        │
-│  (Frontend - React + TypeScript)        │
-└──────────────┬──────────────────────────┘
-               │ (HTTP)
-┌──────────────▼──────────────────────────┐
-│  WAI Backend API                        │
-│  (Node.js + Express)                    │
-│                                          │
-│  • Social Account Management             │
-│  • Webhook Receiver                      │
-│  • Database Operations                   │
-└──────────────┬──────────────────────────┘
-               │ (Webhook)
-┌──────────────▼──────────────────────────┐
-│  Your Server (85.239.51.246)            │
-│                                          │
-│  ┌─────────────────────────────────┐    │
-│  │ Webhook Handler                 │    │
-│  │ (Receives tasks from WAI)       │    │
-│  └────────────┬────────────────────┘    │
-│               │                         │
-│  ┌────────────▼────────────────────┐    │
-│  │ SMM Agent Service               │    │
-│  │ • Content Planning              │    │
-│  │ • Text Generation               │    │
-│  │ • Image Prompt Generation       │    │
-│  │ • Brand Knowledge Analysis      │    │
-│  └────────────┬────────────────────┘    │
-│               │                         │
-│  ┌────────────▼────────────────────┐    │
-│  │ AI Provider Factory             │    │
-│  │ • Claude Provider               │    │
-│  │ • OpenAI Provider (TODO)        │    │
-│  │ • Gemini Provider (TODO)        │    │
-│  └─────────────────────────────────┘    │
-└─────────────────────────────────────────┘
-```
-
-## 🗄️ Database Schema
-
-### `social_accounts`
-Stores connected social media accounts
-- `id`: UUID
-- `platform`: 'instagram' | 'telegram' | 'vk' | 'youtube' | 'tiktok'
-- `accountName`: Display name
-- `accessTokenEncrypted`: Encrypted API token
-- `status`: 'connected' | 'disconnected' | 'error'
-
-### `social_agents`
-AI agents configured per social account
-- `id`: UUID
-- `agentName`: "WAI SMM"
-- `toneOfVoice`: "professional, engaging"
-- `brandRules`: JSON with style, offers, audience
-- `aiProvider`: 'claude' | 'openai' | 'gemini'
-- `autoPublishEnabled`: boolean
-- `approvalRequired`: boolean
-
-### `knowledge_files`
-Brand knowledge documents
-- `id`: UUID
-- `fileName`: "branding_guide.pdf"
-- `fileType`: 'pdf' | 'docx' | 'txt' | 'image' | 'audio' | 'link'
-- `parsedText`: Extracted text content
-- `embeddingId`: Vector embedding ID
-
-### `content_plans`
-7-14 day content plans
-- `id`: UUID
-- `title`: "Weekly Plan"
-- `periodStart` / `periodEnd`: Date range
-- `status`: 'draft' | 'active' | 'completed'
-
-### `content_items`
-Individual posts/stories/reels
-- `id`: UUID
-- `caption`: Post text
-- `imagePrompt`: For image generation
-- `imageUrl` / `videoUrl`: Generated or uploaded media
-- `hashtags`: Array of tags
-- `publishAt`: Scheduled time
-- `status`: 'draft' | 'needs_review' | 'approved' | 'scheduled' | 'published'
-- `approvalStatus`: 'pending' | 'approved' | 'rejected'
-
-## 🚀 Getting Started
-
-### Installation
-
-```bash
-npm install
-```
-
-### Configuration
-
-1. Copy `.env.example` to `.env`:
-```bash
-cp .env.example .env
-```
-
-2. Fill in your API keys:
-```
-ANTHROPIC_API_KEY=sk-ant-...
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=wai_social_agent
-```
-
-### Database Setup
-
-```bash
-# Create PostgreSQL database
-createdb wai_social_agent
-
-# Run migrations (auto-sync with NODE_ENV=development)
-npm run build
-npm start
-```
-
-### Development
-
-```bash
-npm run dev
-```
-
-Server will start on `http://localhost:3000`
-
-Health check: `GET /health`
-
-## 🔗 Webhook Integration
-
-### Receive Tasks from WAI
-
-**Endpoint:** `POST /webhook/task`
-
-**Payload:**
-```json
-{
-  "type": "create_content_plan",
-  "socialAccountId": "uuid",
-  "projectId": "uuid",
-  "userMessage": "Create a 7-day plan for Instagram",
-  "files": ["url1", "url2"],
-  "references": ["reference1", "reference2"]
-}
-```
-
-**Types:**
-- `create_content_plan`: Generate a content plan
-- `generate_content`: Generate specific content
-- `publish`: Publish approved content
-- `analyze`: Analyze brand/content
-
-**Response:**
-```json
-{
-  "success": true,
-  "result": { /* varies by type */ },
-  "taskId": 1234567890
-}
-```
-
-### Send Commands to WAI
-
-From your server to WAI:
-
-```bash
-curl -X POST http://wai-api/social-agents/task \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_WAI_TOKEN" \
-  -d '{
-    "type": "publish",
-    "contentItemId": "uuid",
-    "platform": "instagram"
-  }'
-```
-
-## 🤖 AI Agent Usage
-
-### Initialize Agent
-
-```typescript
-const smmService = new SmmAgentService();
-await smmService.initialize(agentId, socialAccountId, projectId);
-```
-
-### Create Content Plan
-
-```typescript
-const plan = await smmService.createContentPlan(
-  "Weekly Plan",
-  new Date(),
-  new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-  "Create posts for a marketing agency"
-);
-```
-
-### Generate Content
-
-```typescript
-const items = await smmService.generateContentItems(
-  contentPlanId,
-  7, // number of posts
-  'instagram'
-);
-```
-
-### Approve & Publish
-
-```typescript
-await smmService.approveContent(contentItemId);
-await smmService.publishContent(contentItemId);
-```
-
-## 🔐 Security
-
-- ✅ Encrypted token storage
-- ✅ Webhook signature verification (TODO)
-- ✅ JWT authentication (TODO)
-- ✅ Rate limiting (TODO)
-- ✅ Content safety checks (TODO)
-
-## 📦 Deployment
-
-### Docker
-
-```dockerfile
-FROM node:20-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY dist ./dist
-
-CMD ["node", "dist/index.ts"]
-```
-
-### Your Server (85.239.51.246)
-
-1. Clone the repo
-2. Install dependencies: `npm install`
-3. Build: `npm run build`
-4. Set up `.env` with your API keys
-5. Run: `npm start`
-
-## 🗺️ Roadmap
-
-### Phase 1 ✅
-- [x] Project scaffold
-- [x] Database schema
-- [x] Claude AI provider
-- [x] Webhook receiver
-- [x] Basic content planning
-
-### Phase 2 🔄
-- [ ] OpenAI provider
-- [ ] Gemini provider
-- [ ] Instagram OAuth & publishing
-- [ ] Telegram bot API integration
-- [ ] File upload & parsing
-- [ ] Content calendar UI
-
-### Phase 3 📋
-- [ ] VK API integration
-- [ ] YouTube API integration
-- [ ] Image generation (Midjourney/Stable Diffusion)
-- [ ] Analytics & reporting
-- [ ] A/B testing
-
-## 📞 API Reference
-
-### Content Planning
-- `POST /webhook/task` - Create content plan
-
-### Content Management
-- `GET /content-plans/{id}` - Get plan details
-- `POST /content-items/{id}/approve` - Approve content
-- `POST /content-items/{id}/publish` - Publish content
-- `PUT /content-items/{id}` - Edit content
-
-### Social Accounts
-- `POST /social-accounts` - Connect account
-- `GET /social-accounts` - List accounts
-- `DELETE /social-accounts/{id}` - Disconnect account
-
-### AI Agents
-- `POST /agents` - Create agent
-- `PUT /agents/{id}` - Update agent settings
-- `POST /agents/{id}/ask` - Chat with agent
-
-## 🤝 Contributing
-
-1. Create a feature branch: `git checkout -b feature/your-feature`
-2. Commit: `git commit -am 'Add feature'`
-3. Push: `git push origin feature/your-feature`
-4. Open PR
-
-## 📄 License
-
-MIT
-
-## 💬 Support
-
-- Docs: https://docs.wai.system
-- Email: support@wai.system
-- Telegram: @wai_support
+![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
+![Node](https://img.shields.io/badge/node-20.x-green.svg)
+![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
 ---
 
-Built with ❤️ for SMM teams
+## ✨ Key Features
+
+### 📝 Content Management
+- ✅ Create, edit, schedule, and publish posts across multiple platforms
+- ✅ Rich content editor with image/video support
+- ✅ Content calendar with month view
+- ✅ Draft and approval workflows
+- ✅ Bulk import from CSV/JSON with date-based scheduling
+
+### 🤖 AI-Powered Generation
+- ✅ Claude AI for intelligent content creation
+- ✅ Support for multiple AI providers (OpenAI, Gemini)
+- ✅ Brand-aware content generation
+- ✅ Tone and style customization
+- ✅ Image prompt generation
+
+### 📊 Analytics & Insights
+- ✅ Real-time dashboard with engagement metrics
+- ✅ Performance tracking by platform
+- ✅ Content performance analytics
+- ✅ Engagement trends and patterns
+- ✅ Comparative insights
+
+### 👁️ Competitor Analysis
+- ✅ Analyze competitor accounts and strategies
+- ✅ Extract metrics and engagement patterns
+- ✅ AI-powered competitive recommendations
+- ✅ Content strategy insights
+- ✅ Send recommendations to your AI agents
+
+### 🌐 Multi-Platform Support
+- ✅ Instagram (posts, reels, stories, carousels)
+- ✅ Telegram (text, images, videos)
+- ✅ VK (posts, stories)
+- ✅ YouTube (videos)
+- ✅ TikTok (short videos)
+- ✅ Extensible architecture for new platforms
+
+### ☁️ Google Drive Integration
+- ✅ Store content in Google Drive
+- ✅ Sync entire content plans
+- ✅ Share content with team members
+- ✅ Backup and version control
+
+### ⚡ Automation
+- ✅ Auto-publish at scheduled times
+- ✅ Recurring content schedules
+- ✅ Webhook integration with external systems
+- ✅ Smart scheduler with timezone support
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 20.x or higher
+- npm or pnpm
+- Docker & Docker Compose (optional, but recommended)
+
+### Option 1: Docker Compose (Recommended - 5 minutes)
+
+```bash
+# Clone and enter directory
+git clone <repo> && cd Selkorin
+
+# Start everything
+docker-compose up
+
+# Wait for "Database initialized" message
+# Open browser: http://localhost:3001
+```
+
+### Option 2: Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Create .env file
+cp .env.development .env.local
+
+# Initialize database with demo data
+npm run seed
+
+# Terminal 1: Start backend
+npm run dev
+
+# Terminal 2: Start frontend
+cd web && npm install && npm run dev
+```
+
+Then open:
+- 🔗 Backend: http://localhost:3000
+- 🎨 Frontend: http://localhost:3001
+
+---
+
+## 📚 Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [SETUP.md](./SETUP.md) | Installation and configuration |
+| [DEVELOPMENT.md](./DEVELOPMENT.md) | Architecture and development guide |
+| [API.md](./API.md) | Complete API reference |
+| [DEPLOYMENT.md](./DEPLOYMENT.md) | Production deployment |
+| [GOOGLE_DRIVE.md](./GOOGLE_DRIVE.md) | Google Drive integration |
+| [BULK_SCHEDULING.md](./BULK_SCHEDULING.md) | Bulk upload and scheduling |
+
+---
+
+## 🏗️ Architecture
+
+```
+WAI Social Brain
+│
+├─ Frontend (React + Tailwind CSS)
+│  ├─ Dashboard (stats, calendar, activity)
+│  ├─ Content Management (CRUD, filtering)
+│  ├─ Competitor Analysis (metrics, reports)
+│  ├─ Analytics (trends, performance)
+│  └─ Settings (accounts, preferences)
+│
+├─ Backend (Express + TypeORM)
+│  ├─ REST API (/api/*)
+│  ├─ Services (Business logic)
+│  ├─ Controllers (Request handling)
+│  ├─ Entities (Database models)
+│  ├─ Adapters (Platform integrations)
+│  └─ Scheduler (Auto-publishing)
+│
+└─ Database (SQLite / PostgreSQL)
+   ├─ Content items
+   ├─ Social accounts
+   ├─ Schedules
+   ├─ Analytics
+   └─ Competitor data
+```
+
+---
+
+## 💻 Tech Stack
+
+### Frontend
+- **React 18** - UI library
+- **Tailwind CSS** - Styling
+- **React Router** - Navigation
+- **Axios** - HTTP client
+- **Vite** - Build tool
+
+### Backend
+- **Express** - Web framework
+- **TypeORM** - ORM
+- **TypeScript** - Type safety
+- **SQLite/PostgreSQL** - Database
+- **Anthropic SDK** - Claude API
+
+### DevOps
+- **Docker** - Containerization
+- **Docker Compose** - Local development
+
+---
+
+## 📊 Demo Data
+
+System comes with pre-loaded demo data:
+
+✅ **3 Social Accounts** (Instagram, Telegram, TikTok)
+✅ **2 Content Plans** (Current week + Next week)
+✅ **7 Sample Posts** (Various statuses)
+✅ **2 AI Agents** (Content generators)
+✅ **1 Competitor Analysis** (With full report)
+
+Reset demo data anytime:
+```bash
+npm run seed:reset
+```
+
+---
+
+## 🔌 API Endpoints
+
+### Dashboard
+```
+GET /api/dashboard/stats         Stats and KPIs
+GET /api/dashboard/activity      Recent activity
+GET /api/dashboard/calendar      Content calendar
+GET /api/dashboard/analytics     Analytics data
+```
+
+### Content CRUD
+```
+GET    /api/content              List posts
+POST   /api/content              Create post
+GET    /api/content/:id          Get post
+PUT    /api/content/:id          Update post
+DELETE /api/content/:id          Delete post
+```
+
+### Social Accounts
+```
+GET /api/socials                 List accounts
+POST /api/socials                Connect account
+GET /api/socials/:id             Get account
+```
+
+### Competitor Analysis
+```
+POST /analyze/competitor         Start analysis
+GET  /analysis/:id               Get analysis
+POST /analysis/:id/send-to-agents Send to agents
+```
+
+### Google Drive
+```
+GET  /auth/google/url            Get auth URL
+POST /drive/upload               Upload to Drive
+POST /drive/sync-plan            Sync entire plan
+GET  /drive/files                List Drive files
+```
+
+Full API docs: [API.md](./API.md)
+
+---
+
+## 🛠️ Configuration
+
+### Environment Variables
+
+```env
+# Database
+USE_SQLITE=true
+DB_PATH=./data/wai.db
+
+# API Keys
+ANTHROPIC_API_KEY=sk-ant-your-key
+OPENAI_API_KEY=sk-your-key
+
+# Google Drive
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-secret
+
+# JWT
+JWT_SECRET=your-secret-key
+
+# Features
+SEED_DATA_ENABLED=true
+```
+
+Detailed config: [SETUP.md](./SETUP.md)
+
+---
+
+## 🚀 Deployment
+
+### Quick Deploy to Railway
+
+```bash
+# 1. Push to GitHub
+git push origin main
+
+# 2. Connect to Railway
+# - Go to railway.app
+# - Create new project
+# - Connect GitHub repo
+# - Add environment variables
+# - Deploy!
+```
+
+### Self-Hosted (Docker)
+
+```bash
+docker build -t wai-social-brain .
+docker run -p 3000:3000 -e NODE_ENV=production wai-social-brain
+```
+
+Full deployment guide: [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+---
+
+## 📦 Project Structure
+
+```
+Selkorin/
+├── src/                    Backend (Node.js)
+│   ├── config/            Configuration
+│   ├── controllers/       HTTP handlers
+│   ├── services/          Business logic
+│   ├── entities/          Database models
+│   ├── adapters/          Platform integrations
+│   ├── scripts/           CLI tools
+│   └── index.ts          Entry point
+│
+├── web/                    Frontend (React)
+│   ├── src/
+│   │   ├── pages/        Pages
+│   │   ├── components/   React components
+│   │   ├── services/     API client
+│   │   └── App.tsx       Router
+│   └── public/           Static files
+│
+├── data/                   Database (SQLite)
+├── docker-compose.yml      Local development
+├── SETUP.md               Setup guide
+├── DEVELOPMENT.md         Dev guide
+├── API.md                 API reference
+└── README.md             This file
+```
+
+---
+
+## 🎯 Next Steps
+
+After setup:
+
+1. **Connect your social accounts** → Settings → Add Account
+2. **Create a content plan** → Dashboard → New Plan
+3. **Add some posts** → Content Management → Create Post
+4. **Schedule for publishing** → Approve and schedule
+5. **Watch analytics** → Analytics dashboard
+6. **Analyze competitors** → Competitor Analysis
+
+---
+
+## 🔑 Key Endpoints for Integration
+
+### For External Systems
+
+```
+POST /webhook/task           Receive tasks from WAI admin
+GET  /webhook/status         Check task status
+GET  /health                 Health check
+```
+
+### For Frontend
+
+```
+GET  /api/health             Backend status
+GET  /api/dashboard/*        All dashboard data
+GET  /api/content            List/search posts
+POST /api/content            Create post
+GET  /api/socials            Connected accounts
+GET  /api/plans              Content plans
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! See [DEVELOPMENT.md](./DEVELOPMENT.md) for:
+- Architecture overview
+- How to add new features
+- Code style guidelines
+- Testing procedures
+
+---
+
+## 📝 License
+
+MIT License - see LICENSE file for details
+
+---
+
+## 💬 Support
+
+- 📖 Documentation: See `*.md` files
+- 🐛 Issues: GitHub Issues
+- 💡 Discussions: GitHub Discussions
+- 📧 Email: Contact maintainers
+
+---
+
+## ✅ Checklist for First Use
+
+- [ ] Clone repository
+- [ ] Install dependencies (`npm install`)
+- [ ] Run `npm run seed` to initialize database
+- [ ] Start backend (`npm run dev`)
+- [ ] Start frontend (`cd web && npm run dev`)
+- [ ] Open http://localhost:3001
+- [ ] Explore demo data
+- [ ] Connect your first social account
+- [ ] Create a test post
+
+---
+
+## 🎉 Ready to Go!
+
+Your complete AI-powered SMM system is ready. Start creating amazing content! 🚀
+
+**Next:** Read [SETUP.md](./SETUP.md) for detailed configuration options.
