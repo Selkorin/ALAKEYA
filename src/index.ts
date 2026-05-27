@@ -8,6 +8,7 @@ import { AuthController } from './controllers/AuthController';
 import { PublishingController } from './controllers/PublishingController';
 import { ContentController } from './controllers/ContentController';
 import { ImportController } from './controllers/ImportController';
+import { CompetitorAnalysisController } from './controllers/CompetitorAnalysisController';
 import { SchedulerService } from './services/SchedulerService';
 
 dotenv.config();
@@ -41,6 +42,7 @@ const authController = new AuthController();
 const publishingController = new PublishingController();
 const contentController = new ContentController();
 const importController = new ImportController();
+const competitorController = new CompetitorAnalysisController();
 
 // Health & Demo
 app.get('/health', (req, res) => {
@@ -139,6 +141,23 @@ app.get('/import/template/json', (req, res) =>
   importController.getJSONTemplate(req, res)
 );
 
+// Competitor Analysis Routes
+app.post('/analyze/competitor', (req, res) =>
+  competitorController.analyzeCompetitor(req, res)
+);
+
+app.get('/analysis/:analysisId', (req, res) =>
+  competitorController.getAnalysis(req, res)
+);
+
+app.get('/analyses', (req, res) =>
+  competitorController.getAnalysesByProject(req, res)
+);
+
+app.post('/analysis/:analysisId/send-to-agents', (req, res) =>
+  competitorController.sendRecommendationsToAgents(req, res)
+);
+
 app.listen(PORT, () => {
   console.log(`\n✅ WAI Social Agent running on port ${PORT}\n`);
   console.log(`🌐 Dashboard: http://localhost:${PORT}/demo`);
@@ -177,4 +196,10 @@ app.listen(PORT, () => {
   console.log(`   CSV Template: GET /import/template/csv`);
   console.log(`   JSON Template: GET /import/template/json`);
   console.log(`   Bulk Update Schedules: POST /schedules/bulk-update\n`);
+
+  console.log(`\n🔍 Competitor Analysis Endpoints:`);
+  console.log(`   Analyze Competitor: POST /analyze/competitor`);
+  console.log(`   Get Analysis: GET /analysis/:analysisId`);
+  console.log(`   List Analyses: GET /analyses?projectId=uuid`);
+  console.log(`   Send to Agents: POST /analysis/:analysisId/send-to-agents\n`);
 });
