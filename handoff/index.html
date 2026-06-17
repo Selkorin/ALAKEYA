@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>ALAKEYA → WAI Agent · Handoff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/tokens.css">
+<link rel="stylesheet" href="src/animations.css">
+<style>
+  html, body { margin: 0; padding: 0; background: var(--wai-bg); color: var(--wai-text); font-family: var(--wai-font-sans); -webkit-font-smoothing: antialiased; }
+  body { background-image: radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px); background-size: 22px 22px; }
+  * { box-sizing: border-box; }
+  .mono { font-family: var(--wai-font-mono); }
+  .caption { font-family: var(--wai-font-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--wai-text-muted); }
+  main { max-width: 1240px; padding: 64px 48px 128px; margin: 0 auto; }
+  h1 { font-size: 56px; font-weight: 600; letter-spacing: -2px; line-height: 1; margin: 0 0 16px; }
+  h2 { font-size: 28px; font-weight: 500; letter-spacing: -0.8px; margin: 0 0 12px; }
+  h3 { font-size: 16px; font-weight: 600; margin: 0 0 6px; }
+  p { color: var(--wai-text-dim); line-height: 1.55; }
+
+  section { margin-bottom: 80px; }
+  .section-head { display: flex; align-items: baseline; gap: 24px; margin-bottom: 8px; }
+  .section-head .caption { color: var(--wai-accent); }
+  .section-head hr { flex: 1; border: 0; border-top: 1px solid var(--wai-line); }
+
+  /* ── Live demo grid ───────────────────────────────────── */
+  .demo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .demo-cell {
+    position: relative; aspect-ratio: 1;
+    background: linear-gradient(135deg, #1a1640 0%, #0a0a20 45%, #14082a 100%);
+    border: 1px solid var(--wai-line);
+    border-radius: var(--wai-r-lg);
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color var(--wai-dur-fast) var(--wai-ease-out);
+    cursor: pointer;
+  }
+  .demo-cell:hover { border-color: var(--wai-line-accent); }
+  .demo-cell.active { border-color: var(--wai-accent); box-shadow: 0 0 24px rgba(6,182,212,0.35); }
+  .demo-label {
+    position: absolute; top: 12px; left: 14px;
+    font-family: var(--wai-font-mono); font-size: 10px;
+    color: var(--wai-text-muted); letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .demo-state {
+    position: absolute; bottom: 12px; left: 14px;
+    font-size: 13px; font-weight: 500; color: var(--wai-text);
+  }
+  .demo-desc {
+    position: absolute; bottom: 14px; right: 14px;
+    font-size: 10px; color: var(--wai-text-muted);
+    text-align: right; max-width: 60%; line-height: 1.3;
+  }
+
+  /* ── ORB ──────────────────────────────────────────────── */
+  .orb-root { position: relative; width: var(--size, 80px); height: var(--size, 80px); }
+  .halo {
+    position: absolute; inset: -20%;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--wai-accent-glow) 0%, transparent 70%);
+    animation: wai-breathe-halo var(--wai-dur-breath) ease-in-out infinite;
+    pointer-events: none;
+  }
+  .pulse-ring {
+    position: absolute; inset: 0;
+    border: 1.5px solid var(--wai-accent-bright);
+    border-radius: 50%;
+    opacity: 0;
+    animation: wai-pulse-ring 2s infinite;
+    pointer-events: none;
+  }
+  .pulse-ring.r2 { animation-delay: 0.6s; }
+  .pulse-ring.r3 { animation-delay: 1.2s; }
+  .orbit-wrap { position: absolute; inset: -28%; pointer-events: none; }
+  .orbit-1 { animation: wai-rotate-slow 4s linear infinite; position: absolute; inset: 0; }
+  .orbit-2 { animation: wai-rotate-rev 6s linear infinite; position: absolute; inset: -12%; }
+  .particle { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: var(--wai-accent-bright); box-shadow: 0 0 8px var(--wai-accent); }
+  .sphere {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: var(--wai-orb-core);
+    box-shadow: var(--wai-shadow-orb);
+    animation: wai-breathe var(--wai-dur-breath) ease-in-out infinite;
+  }
+  .sphere.listening { box-shadow: var(--wai-shadow-orb-bright); animation-duration: 2s; }
+  .sphere.thinking  { animation: wai-rotate-slow 8s linear infinite; }
+  .sphere.speaking  { animation: wai-breathe 600ms ease-in-out infinite; }
+  .sphere.acting    { box-shadow: var(--wai-shadow-orb-bright); }
+  .sphere.permission { box-shadow: 0 0 28px rgba(251,191,36,0.55); }
+  .sphere.error     { background: var(--wai-orb-core-error); animation: wai-glow-error 2.4s ease-in-out infinite; }
+  .eye { position: absolute; top: 33%; width: 7%; aspect-ratio: 1; border-radius: 50%; background: #fff; animation: wai-blink 5s infinite; transform-origin: center; }
+  .eye.l { left: 26%; }  .eye.r { right: 26%; }
+  .mouth { position: absolute; bottom: 22%; left: 30%; width: 40%; height: 14%; border: 2px solid #fff; border-top: none; border-radius: 0 0 100px 100px; opacity: 0.9; }
+  .mouth.flat { height: 0; border-bottom: 2px solid #fff; border-radius: 0; bottom: 28%; border-top: 0; }
+  .mouth.frown { border: 2px solid #fff; border-bottom: 0; border-radius: 100px 100px 0 0; }
+  .mouth.speak { animation: wai-breathe 220ms ease-in-out infinite; border-radius: 50%; border: 2px solid #fff; width: 22%; height: 22%; left: 39%; bottom: 18%; }
+  .voice-dots { position: absolute; bottom: 17%; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; align-items: flex-end; height: 18%; }
+  .voice-dots span { width: 6%; min-width: 3px; height: 100%; border-radius: 2px; background: #fff; transform-origin: center; animation: wai-dot-wave 0.9s infinite; }
+  .voice-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .voice-dots span:nth-child(3) { animation-delay: 0.30s; }
+  .spark { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: var(--wai-accent-pale); pointer-events: none; animation: wai-spark-drift 3s infinite; }
+
+  /* ── Tokens table ─────────────────────────────────────── */
+  .token-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .token-card {
+    padding: 18px;
+    background: var(--wai-surface);
+    backdrop-filter: var(--wai-blur-sm);
+    border: 1px solid var(--wai-line);
+    border-radius: var(--wai-r-lg);
+  }
+  .swatch { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; }
+  .swatch-chip { width: 36px; height: 36px; border-radius: var(--wai-r-sm); border: 1px solid var(--wai-line); flex-shrink: 0; }
+  .token-name { font-family: var(--wai-font-mono); font-size: 11px; color: var(--wai-text); }
+  .token-val { font-family: var(--wai-font-mono); font-size: 10px; color: var(--wai-text-muted); margin-top: 2px; }
+
+  /* ── File tree ────────────────────────────────────────── */
+  .file-tree {
+    padding: 22px;
+    background: var(--wai-surface);
+    backdrop-filter: var(--wai-blur-sm);
+    border: 1px solid var(--wai-line);
+    border-radius: var(--wai-r-lg);
+    font-family: var(--wai-font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .file-tree .dir { color: var(--wai-accent-bright); }
+  .file-tree .file { color: var(--wai-text-dim); }
+  .file-tree .desc { color: var(--wai-text-muted); margin-left: 12px; font-style: italic; }
+
+  /* ── Quick reference ──────────────────────────────────── */
+  .quickref {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+  }
+  .quickref-card {
+    padding: 20px;
+    background: var(--wai-surface);
+    border: 1px solid var(--wai-line);
+    border-radius: var(--wai-r-lg);
+  }
+  .quickref-card pre {
+    margin: 12px 0 0; padding: 14px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--wai-line);
+    border-radius: var(--wai-r-md);
+    font-family: var(--wai-font-mono);
+    font-size: 11px;
+    line-height: 1.55;
+    color: var(--wai-text);
+    overflow-x: auto;
+  }
+  .quickref-card pre .kw { color: #C792EA; }
+  .quickref-card pre .str { color: #C3E88D; }
+  .quickref-card pre .com { color: var(--wai-text-muted); }
+  .quickref-card pre .tag { color: var(--wai-accent-bright); }
+
+  /* ── State machine diagram ─────────────────────────────── */
+  .state-flow {
+    padding: 28px;
+    background: var(--wai-surface);
+    border: 1px solid var(--wai-line);
+    border-radius: var(--wai-r-lg);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    align-items: center;
+  }
+  .sf-cell {
+    padding: 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--wai-line);
+    border-radius: var(--wai-r-md);
+    text-align: center;
+    font-size: 12px;
+  }
+  .sf-cell .mono { font-size: 10px; color: var(--wai-text-muted); }
+  .sf-arrow { font-family: var(--wai-font-mono); color: var(--wai-text-muted); text-align: center; font-size: 11px; }
+
+  footer { display: flex; align-items: center; justify-content: space-between; padding: 32px 0; margin-top: 64px; border-top: 1px solid var(--wai-line); font-size: 12px; color: var(--wai-text-muted); }
+  footer a { color: var(--wai-accent-bright); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  .pill { display: inline-block; padding: 3px 9px; border-radius: var(--wai-r-pill); background: var(--wai-accent-soft); border: 1px solid var(--wai-line-accent); color: var(--wai-accent-bright); font-size: 10px; font-family: var(--wai-font-mono); }
+</style>
+</head>
+<body>
+
+<main>
+
+  <!-- ═══ Header ═══ -->
+  <header style="display: grid; grid-template-columns: 1fr auto; gap: 48px; align-items: end; padding-bottom: 32px; border-bottom: 1px solid var(--wai-line); margin-bottom: 64px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 18px; margin-bottom: 22px;">
+        <div class="orb-root" style="--size: 56px;">
+          <div class="halo"></div>
+          <div class="sphere">
+            <div class="eye l"></div>
+            <div class="eye r"></div>
+            <div class="mouth"></div>
+          </div>
+        </div>
+        <span class="caption">ALAKEYA → WAI Agent · Handoff</span>
+      </div>
+      <h1>Технический пакет<br>для интеграции<span style="color: var(--wai-accent);">.</span></h1>
+      <p style="max-width: 720px; font-size: 16px; margin: 0;">Дизайн-токены, готовые React-компоненты, state machine и permission flow. Drop-in поверх существующего WAI Agent на Electron.</p>
+    </div>
+    <div style="display: grid; grid-template-columns: auto 1fr; gap: 6px 24px; font-size: 12px; color: var(--wai-text-muted); padding-bottom: 6px;">
+      <span class="mono" style="color: var(--wai-text-faint);">СТЕК</span><span>Electron · React</span>
+      <span class="mono" style="color: var(--wai-text-faint);">ФАЙЛОВ</span><span>13 готовых к копированию</span>
+      <span class="mono" style="color: var(--wai-text-faint);">ВРЕМЯ</span><span>~3 недели разработчика</span>
+      <span class="mono" style="color: var(--wai-text-faint);">ЗАВИСИМОСТИ</span><span>только react</span>
+    </div>
+  </header>
+
+  <!-- ═══ Section: Live demo ═══ -->
+  <section>
+    <div class="section-head">
+      <span class="caption">01 — LIVE DEMO</span>
+      <hr>
+      <span class="mono" style="font-size: 11px; color: var(--wai-text-muted);">7 состояний</span>
+    </div>
+    <h2>Орб во всех состояниях</h2>
+    <p style="margin: 0 0 28px; max-width: 640px;">Кликни на любую карточку — увидишь поведение в живую. Это финальный визуал, готовый к копи-пасту в твой проект.</p>
+
+    <div class="demo-grid">
+      <!-- idle -->
+      <div class="demo-cell" data-state="idle" onclick="cycleState(this, 'idle')">
+        <span class="demo-label">01</span>
+        <div class="orb-root" style="--size: 80px;">
+          <div class="halo"></div>
+          <div class="sphere"><div class="eye l"></div><div class="eye r"></div><div class="mouth"></div></div>
+          <span class="spark" style="top: -10%; left: 30%; --dx: 8px; --dy: -14px;"></span>
+          <span class="spark" style="bottom: 5%; right: -6%; animation-delay: 0.6s; --dx: 12px; --dy: 6px;"></span>
+          <span class="spark" style="top: 15%; right: -10%; animation-delay: 1.2s; --dx: 14px; --dy: -8px;"></span>
+        </div>
+        <span class="demo-state">Idle</span>
+        <span class="demo-desc">Готов · breathing</span>
+      </div>
+
+      <!-- listening -->
+      <div class="demo-cell" data-state="listening" onclick="cycleState(this, 'listening')">
+        <span class="demo-label">02</span>
+        <div class="orb-root" style="--size: 80px;">
+          <div class="halo"></div>
+          <div class="pulse-ring"></div>
+          <div class="pulse-ring r2"></div>
+          <div class="pulse-ring r3"></div>
+          <div class="sphere listening">
+            <div class="eye l"></div><div class="eye r"></div>
+            <div class="voice-dots"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+        <span class="demo-state">Listening</span>
+        <span class="demo-desc">Слушаю · 3-dot wave</span>
+      </div>
+
+      <!-- thinking -->
+      <div class="demo-cell" data-state="thinking" onclick="cycleState(this, 'thinking')">
+        <span class="demo-label">03</span>
+        <div class="orb-root" style="--size: 80px;">
+          <div class="halo"></div>
+          <div class="orbit-wrap">
+            <div class="orbit-1">
+              <span class="particle" style="top: 0; left: 50%; transform: translateX(-50%);"></span>
+              <span class="particle" style="bottom: 0; left: 50%; transform: translateX(-50%);"></span>
+            </div>
+            <div class="orbit-2">
+              <span class="particle" style="top: 10%; right: 15%; width: 3px; height: 3px;"></span>
+              <span class="particle" style="bottom: 10%; left: 15%; width: 2px; height: 2px;"></span>
+            </div>
+          </div>
+          <div class="sphere thinking">
+            <div class="eye l"></div><div class="eye r"></div>
+            <div class="mouth flat"></div>
+          </div>
+        </div>
+        <span class="demo-state">Thinking</span>
+        <span class="demo-desc">Думаю · rotating</span>
+      </div>
+
+      <!-- speaking -->
+      <div class="demo-cell" data-state="speaking" onclick="cycleState(this, 'speaking')">
+        <span class="demo-label">04</span>
+        <div class="orb-root" style="--size: 80px;">
+          <div class="halo"></div>
+          <div class="sphere speaking">
+            <div class="eye l"></div><div class="eye r"></div>
+            <div class="mouth speak"></div>
+          </div>
+        </div>
+        <span class="demo-state">Speaking</span>
+        <span class="demo-desc">Говорю · TTS</span>
+      </div>
+
+      <!-- acting -->
+      <div class="demo-cell" data-state="acting" onclick="cycleState(this, 'acting')">
+        <span class="demo-label">05</span>
+        <div class="orb-root" style="--size: 80px;">
+          <div class="halo"></div>
+          <div class="sphere acting">
+            <div class="eye l"></div><div class="eye r"></div>
+            <div class="mouth flat"></div>
+          </div>
+        </div>
+        <span class="demo-state">Acting</span>
+        <span class="demo-desc">Действую</span>
+      </div>
+
+      <!-- permission -->
+      <div class="demo-cell" data-state="permission" onclick="cycleState(this, 'permission')">
+        <span class="demo-label">06</span>
+        <div class="orb-root" style="--size: 80px;">
+          <div class="halo" style="background: radial-gradient(circle, rgba(251,191,36,0.4), transparent 70%);"></div>
+          <div class="sphere permission">
+            <div class="eye l"></div><div class="eye r"></div>
+            <div class="mouth"></div>
+          </div>
+        </div>
+        <span class="demo-state">Permission</span>
+        <span class="demo-desc">Жду · amber</span>
+      </div>
+
+      <!-- error -->
+      <div class="demo-cell" data-state="error" onclick="cycleState(this, 'error')">
+        <span class="demo-label">07</span>
+        <div class="orb-root" style="--size: 80px;">
+          <div class="halo" style="background: radial-gradient(circle, rgba(245,158,11,0.4), transparent 70%);"></div>
+          <div class="sphere error">
+            <div class="eye l"></div><div class="eye r"></div>
+            <div class="mouth frown"></div>
+          </div>
+        </div>
+        <span class="demo-state">Error</span>
+        <span class="demo-desc">Ошибка · soft amber</span>
+      </div>
+
+      <!-- usage -->
+      <div class="demo-cell" style="background: rgba(6,182,212,0.05); border-color: var(--wai-line-accent); cursor: default; padding: 18px; display: block;">
+        <span class="demo-label" style="color: var(--wai-accent-bright);">USAGE</span>
+        <div style="margin-top: 30px; font-family: var(--wai-font-mono); font-size: 10px; line-height: 1.6; color: var(--wai-text);">
+          <span style="color: #C792EA;">import</span> Orb<br>
+          &nbsp;&nbsp;<span style="color: #C792EA;">from</span> <span style="color: #C3E88D;">'./Orb'</span>;<br><br>
+          &lt;<span style="color: var(--wai-accent-bright);">Orb</span><br>
+          &nbsp;&nbsp;state={agentStatus}<br>
+          &nbsp;&nbsp;size={<span style="color: #F78C6C;">72</span>}<br>
+          /&gt;
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Section: State machine ═══ -->
+  <section>
+    <div class="section-head">
+      <span class="caption">02 — STATE MACHINE</span>
+      <hr>
+      <span class="mono" style="font-size: 11px; color: var(--wai-text-muted);">orbMachine.js</span>
+    </div>
+    <h2>Связь твоих статусов и визуала</h2>
+    <p style="margin: 0 0 28px; max-width: 640px;">У тебя сейчас 4 статуса: Готов, Думаю, Слушаю, Говорю. Добавим ещё 3 — Действую, Жду подтверждения, Ошибка — и получаем точный маппинг.</p>
+
+    <div class="state-flow">
+      <div class="sf-cell"><div class="mono">'Готов'</div>→ idle</div>
+      <div class="sf-arrow">CLICK / WAKE_WORD →</div>
+      <div class="sf-cell"><div class="mono">'Слушаю'</div>→ listening</div>
+
+      <div class="sf-arrow" style="grid-column: 1;">↓ TEXT_SUBMIT</div>
+      <div></div>
+      <div class="sf-arrow">STOP_LISTENING ↓</div>
+
+      <div class="sf-cell" style="background: var(--wai-accent-soft); border-color: var(--wai-line-accent);"><div class="mono">'Думаю'</div>→ thinking</div>
+      <div class="sf-arrow">LLM tool call →</div>
+      <div class="sf-cell" style="background: var(--wai-accent-soft); border-color: var(--wai-line-accent);"><div class="mono">'Действую'</div>→ acting</div>
+
+      <div class="sf-arrow">↓ LLM text reply</div>
+      <div></div>
+      <div class="sf-arrow">↓ risk ≥ medium</div>
+
+      <div class="sf-cell"><div class="mono">'Говорю'</div>→ speaking</div>
+      <div class="sf-arrow"></div>
+      <div class="sf-cell" style="background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.3);"><div class="mono">'Жду'</div>→ permission</div>
+
+      <div></div><div></div>
+      <div class="sf-arrow">↓ ошибка</div>
+
+      <div></div><div></div>
+      <div class="sf-cell" style="background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.3);"><div class="mono">'Ошибка'</div>→ error</div>
+    </div>
+  </section>
+
+  <!-- ═══ Section: Tokens ═══ -->
+  <section>
+    <div class="section-head">
+      <span class="caption">03 — TOKENS</span>
+      <hr>
+      <span class="mono" style="font-size: 11px; color: var(--wai-text-muted);">tokens.css · 60+ переменных</span>
+    </div>
+    <h2>Дизайн-токены</h2>
+    <p style="margin: 0 0 28px; max-width: 640px;">Все цвета — CSS-переменные. Меняешь акцент в одном месте — меняется во всём приложении.</p>
+
+    <div class="token-grid">
+      <div class="token-card">
+        <h3>Палитра</h3>
+        <p style="font-size: 12px; margin: 0 0 14px;">5 базовых + 4 семантических</p>
+        <div class="swatch"><div class="swatch-chip" style="background: #07070d;"></div><div><div class="token-name">--wai-bg</div><div class="token-val">#07070d</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background: #06B6D4; box-shadow: 0 0 12px rgba(6,182,212,0.4);"></div><div><div class="token-name">--wai-accent</div><div class="token-val">#06B6D4 cyan</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background: #67E8F9;"></div><div><div class="token-name">--wai-accent-bright</div><div class="token-val">#67E8F9</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background: #4ADE80;"></div><div><div class="token-name">--wai-success</div><div class="token-val">#4ADE80</div></div></div>
+        <div class="swatch"><div class="swatch-chip" style="background: #FBBF24;"></div><div><div class="token-name">--wai-warning</div><div class="token-val">#FBBF24</div></div></div>
+        <div class="swatch" style="margin-bottom: 0;"><div class="swatch-chip" style="background: #F87171;"></div><div><div class="token-name">--wai-danger</div><div class="token-val">#F87171</div></div></div>
+      </div>
+
+      <div class="token-card">
+        <h3>Типографика</h3>
+        <p style="font-size: 12px; margin: 0 0 14px;">Inter + JetBrains Mono</p>
+        <div style="font-size: 32px; font-weight: 600; letter-spacing: -0.8px; margin-bottom: 4px;">H1 · 32 / 600</div>
+        <div style="font-size: 22px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 4px;">H2 · 22 / 600</div>
+        <div style="font-size: 17px; font-weight: 600; margin-bottom: 4px;">H3 · 17 / 600</div>
+        <div style="font-size: 14px; margin-bottom: 4px;">Body · 14 / 400</div>
+        <div style="font-size: 12px; color: var(--wai-text-dim); margin-bottom: 6px;">Small · 12 / 400</div>
+        <div class="caption">CAPTION · 11 / 500</div>
+      </div>
+
+      <div class="token-card">
+        <h3>Радиусы</h3>
+        <p style="font-size: 12px; margin: 0 0 14px;">База — 8 px, всё кратно</p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 28px; height: 28px; background: var(--wai-accent-soft); border: 1px solid var(--wai-line-accent); border-radius: 6px;"></div><div class="mono" style="font-size: 11px;">--wai-r-sm · 6px</div></div>
+          <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 28px; height: 28px; background: var(--wai-accent-soft); border: 1px solid var(--wai-line-accent); border-radius: 10px;"></div><div class="mono" style="font-size: 11px;">--wai-r-md · 10px</div></div>
+          <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 28px; height: 28px; background: var(--wai-accent-soft); border: 1px solid var(--wai-line-accent); border-radius: 14px;"></div><div class="mono" style="font-size: 11px;">--wai-r-lg · 14px</div></div>
+          <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 28px; height: 28px; background: var(--wai-accent-soft); border: 1px solid var(--wai-line-accent); border-radius: 22px;"></div><div class="mono" style="font-size: 11px;">--wai-r-xl · 22px</div></div>
+        </div>
+      </div>
+
+      <div class="token-card">
+        <h3>Тайминги</h3>
+        <p style="font-size: 12px; margin: 0 0 14px;">cubic-bezier(0.16, 1, 0.3, 1)</p>
+        <div style="font-family: var(--wai-font-mono); font-size: 11px; line-height: 1.9; color: var(--wai-text);">
+          <div><span style="color: var(--wai-accent-bright);">120 ms</span>&nbsp;&nbsp;press</div>
+          <div><span style="color: var(--wai-accent-bright);">200 ms</span>&nbsp;&nbsp;hover</div>
+          <div><span style="color: var(--wai-accent-bright);">240 ms</span>&nbsp;&nbsp;morph</div>
+          <div><span style="color: var(--wai-accent-bright);">400 ms</span>&nbsp;&nbsp;enter / exit</div>
+          <div><span style="color: var(--wai-accent-bright);">4 s</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;idle pulse</div>
+        </div>
+      </div>
+
+      <div class="token-card">
+        <h3>Glass / Blur</h3>
+        <p style="font-size: 12px; margin: 0 0 14px;">backdrop-filter + macOS vibrancy</p>
+        <div style="height: 70px; background: rgba(255,255,255,0.04); border: 1px solid var(--wai-line); border-radius: var(--wai-r-md); margin-bottom: 8px; display: flex; align-items: center; padding: 0 14px;">
+          <div style="font-family: var(--wai-font-mono); font-size: 10px;">--wai-blur-md<br><span style="color: var(--wai-text-muted);">blur(30px) saturate(180%)</span></div>
+        </div>
+        <div style="font-size: 11px; color: var(--wai-text-muted); margin-top: 14px; line-height: 1.5;">В Electron — комбинируй с <span class="mono">vibrancy: 'sidebar'</span> для нативного macOS-стекла.</div>
+      </div>
+
+      <div class="token-card">
+        <h3>Тени</h3>
+        <p style="font-size: 12px; margin: 0 0 14px;">3 уровня elevation</p>
+        <div style="height: 40px; background: var(--wai-surface); border: 1px solid var(--wai-line); border-radius: var(--wai-r-md); margin-bottom: 12px; box-shadow: var(--wai-shadow-card); display: flex; align-items: center; padding: 0 14px; font-family: var(--wai-font-mono); font-size: 10px;">--wai-shadow-card</div>
+        <div style="height: 40px; background: var(--wai-surface); border: 1px solid var(--wai-line-strong); border-radius: var(--wai-r-md); margin-bottom: 12px; box-shadow: var(--wai-shadow-panel); display: flex; align-items: center; padding: 0 14px; font-family: var(--wai-font-mono); font-size: 10px;">--wai-shadow-panel</div>
+        <div style="height: 40px; background: var(--wai-accent-soft); border: 1px solid var(--wai-line-accent); border-radius: var(--wai-r-md); box-shadow: var(--wai-shadow-cta); display: flex; align-items: center; padding: 0 14px; font-family: var(--wai-font-mono); font-size: 10px;">--wai-shadow-cta</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Section: Quick install ═══ -->
+  <section>
+    <div class="section-head">
+      <span class="caption">04 — INSTALL</span>
+      <hr>
+      <span class="mono" style="font-size: 11px; color: var(--wai-text-muted);">3 шага</span>
+    </div>
+    <h2>Установка в твой проект</h2>
+
+    <div class="quickref">
+      <div class="quickref-card">
+        <h3>1. Скопировать файлы</h3>
+        <p style="font-size: 12px; margin: 6px 0 0;">Всю папку <span class="mono">handoff/src/</span> в свой проект.</p>
+        <pre><span class="com"># терминал</span>
+cp -r handoff/src/* \
+  renderer/src/components/alakeya/</pre>
+      </div>
+
+      <div class="quickref-card">
+        <h3>2. Импортировать стили</h3>
+        <p style="font-size: 12px; margin: 6px 0 0;">В точке входа React (main.jsx).</p>
+        <pre><span class="kw">import</span> <span class="str">'./components/alakeya/tokens.css'</span>;
+<span class="kw">import</span> <span class="str">'./components/alakeya/animations.css'</span>;</pre>
+      </div>
+
+      <div class="quickref-card">
+        <h3>3. Использовать орб</h3>
+        <p style="font-size: 12px; margin: 6px 0 0;">Один компонент, проп <span class="mono">state</span>.</p>
+        <pre><span class="kw">import</span> Orb <span class="kw">from</span> <span class="str">'./Orb'</span>;
+
+&lt;<span class="tag">Orb</span> state={agentStatus} /&gt;</pre>
+      </div>
+
+      <div class="quickref-card">
+        <h3>3a. Маппинг статусов</h3>
+        <p style="font-size: 12px; margin: 6px 0 0;">Связь твоих лейблов с орбом.</p>
+        <pre><span class="kw">import</span> {
+  WAI_STATUS_TO_ORB_STATE
+} <span class="kw">from</span> <span class="str">'./orbMachine'</span>;
+
+<span class="kw">const</span> orbState =
+  WAI_STATUS_TO_ORB_STATE[status]
+  || <span class="str">'idle'</span>;</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Section: Files ═══ -->
+  <section>
+    <div class="section-head">
+      <span class="caption">05 — FILES</span>
+      <hr>
+      <span class="mono" style="font-size: 11px; color: var(--wai-text-muted);">13 файлов</span>
+    </div>
+    <h2>Что в пакете</h2>
+
+    <div class="file-tree">
+      <div><span class="dir">handoff/</span></div>
+      <div>├── <span class="file">HANDOFF.md</span> <span class="desc">← главный спек: токены, машина, архитектура, чек-лист</span></div>
+      <div>├── <span class="file">wai-agent-integration.md</span> <span class="desc">← конкретный мост к твоему main process</span></div>
+      <div>├── <span class="file">index.html</span> <span class="desc">← этот файл (live-демо)</span></div>
+      <div>└── <span class="dir">src/</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">tokens.css</span> <span class="desc">CSS-переменные (импортируй один раз)</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">animations.css</span> <span class="desc">@keyframes</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">Orb.jsx</span> <span class="desc">&lt;Orb state={…} size={…} onClick={…} /&gt;</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">Orb.module.css</span> <span class="desc">стили орба, 7 состояний</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">orbMachine.js</span> <span class="desc">XState config + plain reducer + WAI↔Orb mapping</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">AssistantPanel.jsx</span> <span class="desc">главная панель: инпут, mic, транскрипт, задачи, quick actions</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">PermissionCard.jsx</span> <span class="desc">карточка подтверждения с keyboard shortcuts</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">ActivityLog.jsx</span> <span class="desc">журнал действий с фильтрами today/week/all</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">SettingsWindow.jsx</span> <span class="desc">полное окно настроек, 6 вкладок (Appearance · Voice · Permissions · Automation · Memory · Developer)</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">OnboardingFlow.jsx</span> <span class="desc">6-шаговый онбординг с live mic-тестом</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="file">ErrorToast.jsx</span> <span class="desc">мягкий toast для ошибок и блокировок</span></div>
+    </div>
+  </section>
+
+  <!-- ═══ Section: Read docs ═══ -->
+  <section>
+    <div class="section-head">
+      <span class="caption">06 — DOCS</span>
+      <hr>
+    </div>
+    <h2>Документация</h2>
+    <p style="margin: 0 0 28px; max-width: 640px;">Открой markdown-файлы в любом редакторе или прямо в браузере.</p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <a href="HANDOFF.md" target="_blank" style="text-decoration: none; color: inherit;">
+        <div class="quickref-card" style="cursor: pointer; transition: border-color var(--wai-dur-fast);">
+          <div class="caption" style="margin-bottom: 8px;">КАНОНИЧЕСКИЙ СПЕК</div>
+          <h3>HANDOFF.md</h3>
+          <p style="font-size: 13px; margin: 8px 0 0;">Полное ТЗ: токены, state machine, permission flow, BrowserWindow конфиг, чек-лист на 3 недели работы.</p>
+          <div style="margin-top: 14px; color: var(--wai-accent-bright); font-size: 12px;">Открыть →</div>
+        </div>
+      </a>
+
+      <a href="wai-agent-integration.md" target="_blank" style="text-decoration: none; color: inherit;">
+        <div class="quickref-card" style="cursor: pointer;">
+          <div class="caption" style="margin-bottom: 8px;">МОСТ К ТВОЕМУ КОДУ</div>
+          <h3>wai-agent-integration.md</h3>
+          <p style="font-size: 13px; margin: 8px 0 0;">Конкретные изменения в твоём main process. Где гейт-классификатор, как добавить статусы, Telegram-сценарий с permission flow.</p>
+          <div style="margin-top: 14px; color: var(--wai-accent-bright); font-size: 12px;">Открыть →</div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div class="orb-root" style="--size: 28px;">
+        <div class="sphere" style="animation-duration: 6s;">
+          <div class="eye l"></div><div class="eye r"></div><div class="mouth"></div>
+        </div>
+      </div>
+      <span class="mono">ALAKEYA · v0.1 · 2026</span>
+    </div>
+    <span>Electron · React · 9 файлов · ~3 недели</span>
+  </footer>
+
+</main>
+
+<script>
+  function cycleState(cell, state) {
+    document.querySelectorAll('.demo-cell').forEach(c => c.classList.remove('active'));
+    cell.classList.add('active');
+  }
+</script>
+
+</body>
+</html>

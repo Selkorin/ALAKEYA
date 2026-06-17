@@ -1,0 +1,128 @@
+/* ============================================================
+ * ALAKEYA / WAI Agent — Design Tokens
+ * Drop this file at: src/styles/tokens.css
+ * Import once at the top of your renderer entry point.
+ * ============================================================ */
+
+:root {
+  /* ── COLOR · BASE ────────────────────────────────────────── */
+  --wai-bg:               #07070d;   /* page / window backdrop */
+  --wai-surface:          rgba(10, 10, 20, 0.65);   /* glass panel */
+  --wai-surface-strong:   rgba(10, 10, 20, 0.78);   /* modal glass */
+  --wai-surface-inset:    rgba(255, 255, 255, 0.04); /* input bg */
+
+  /* ── COLOR · BORDERS / HAIRLINES ────────────────────────── */
+  --wai-line:             rgba(255, 255, 255, 0.08);
+  --wai-line-strong:      rgba(255, 255, 255, 0.14);
+  --wai-line-accent:      rgba(6, 182, 212, 0.35);
+
+  /* ── COLOR · TEXT ───────────────────────────────────────── */
+  --wai-text:             rgba(255, 255, 255, 0.92);
+  --wai-text-dim:         rgba(255, 255, 255, 0.65);
+  --wai-text-muted:       rgba(255, 255, 255, 0.45);
+  --wai-text-faint:       rgba(255, 255, 255, 0.30);
+
+  /* ── COLOR · ACCENT (cyan plasma) ───────────────────────── */
+  --wai-accent:           #06B6D4;   /* primary cyan */
+  --wai-accent-bright:    #67E8F9;   /* hover / glow */
+  --wai-accent-pale:      #A8F2FF;   /* highlights */
+  --wai-accent-deep:      #0891B2;   /* gradient end */
+  --wai-accent-soft:      rgba(6, 182, 212, 0.10);  /* tint bg */
+  --wai-accent-glow:      rgba(6, 182, 212, 0.55);  /* shadow */
+
+  /* ── COLOR · SEMANTIC ───────────────────────────────────── */
+  --wai-success:          #4ADE80;   /* granted, completed */
+  --wai-warning:          #FBBF24;   /* awaiting approval */
+  --wai-warning-soft:     #F59E0B;   /* error orb glow */
+  --wai-danger:           #F87171;   /* blocked, destructive */
+
+  /* ── TYPOGRAPHY ─────────────────────────────────────────── */
+  --wai-font-sans:        'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+  --wai-font-mono:        'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+
+  --wai-fs-display:       72px;   /* hero number */
+  --wai-fs-h1:            32px;
+  --wai-fs-h2:            22px;
+  --wai-fs-h3:            17px;
+  --wai-fs-body:          14px;
+  --wai-fs-small:         12px;
+  --wai-fs-caption:       11px;   /* uppercase labels */
+  --wai-fs-micro:         10px;
+
+  --wai-lh-tight:         1.1;
+  --wai-lh-snug:          1.3;
+  --wai-lh-body:          1.5;
+
+  --wai-tracking-tight:   -0.5px;
+  --wai-tracking-display: -2px;
+  --wai-tracking-caption: 0.18em;
+
+  /* ── SPACING (8-px base) ────────────────────────────────── */
+  --wai-s-0:              0;
+  --wai-s-1:              4px;
+  --wai-s-2:              8px;
+  --wai-s-3:              12px;
+  --wai-s-4:              16px;
+  --wai-s-5:              20px;
+  --wai-s-6:              24px;
+  --wai-s-7:              32px;
+  --wai-s-8:              40px;
+  --wai-s-9:              56px;
+
+  /* ── RADII ──────────────────────────────────────────────── */
+  --wai-r-sm:             6px;    /* small chips, toggles */
+  --wai-r-md:             10px;   /* buttons, inputs */
+  --wai-r-lg:             14px;   /* cards inside panel */
+  --wai-r-xl:             22px;   /* panel itself */
+  --wai-r-2xl:            28px;   /* large overlay panel */
+  --wai-r-pill:           999px;
+
+  /* ── BLUR (glass) ───────────────────────────────────────── */
+  --wai-blur-sm:          blur(20px);
+  --wai-blur-md:          blur(30px) saturate(180%);
+  --wai-blur-lg:          blur(40px) saturate(180%);
+
+  /* ── SHADOWS ────────────────────────────────────────────── */
+  --wai-shadow-panel:     0 24px 60px rgba(0, 0, 0, 0.7),
+                          inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --wai-shadow-card:      0 12px 32px rgba(0, 0, 0, 0.5);
+  --wai-shadow-orb:       0 0 32px var(--wai-accent-glow),
+                          inset -4px -4px 12px rgba(0, 0, 0, 0.5),
+                          inset  4px  4px 12px rgba(168, 242, 255, 0.4);
+  --wai-shadow-orb-bright:0 0 48px rgba(6, 182, 212, 0.85);
+  --wai-shadow-cta:       0 0 18px rgba(6, 182, 212, 0.40);
+  --wai-shadow-cta-hover: 0 0 24px rgba(6, 182, 212, 0.60);
+
+  /* ── ANIMATION ──────────────────────────────────────────── */
+  --wai-ease-out:         cubic-bezier(0.16, 1, 0.3, 1);   /* morph */
+  --wai-ease-in-out:      cubic-bezier(0.65, 0, 0.35, 1);  /* general */
+
+  --wai-dur-instant:      120ms;   /* button press */
+  --wai-dur-fast:         200ms;   /* hover */
+  --wai-dur-morph:        240ms;   /* sphere ↔ panel */
+  --wai-dur-medium:       400ms;   /* enter/exit */
+  --wai-dur-breath:       4000ms;  /* idle pulse */
+
+  /* ── ORB GRADIENT (reused literal) ──────────────────────── */
+  --wai-orb-core:         radial-gradient(
+                            circle at 35% 30%,
+                            #C8F5FF 0%,
+                            #06B6D4 35%,
+                            #1e1b4b 75%,
+                            #050216 100%
+                          );
+  --wai-orb-core-error:   radial-gradient(
+                            circle at 35% 30%,
+                            #FEE6B0 0%,
+                            #F59E0B 30%,
+                            #4B1C03 75%,
+                            #1A0700 100%
+                          );
+
+  /* ── Z-INDEX ────────────────────────────────────────────── */
+  --wai-z-orb:            900;
+  --wai-z-panel:          910;
+  --wai-z-permission:     920;
+  --wai-z-toast:          930;
+  --wai-z-onboarding:     940;
+}

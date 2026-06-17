@@ -1,0 +1,91 @@
+/* ============================================================
+ * ALAKEYA / WAI Agent — Animation Keyframes
+ * Drop this file at: src/styles/animations.css
+ * Import once at the top of your renderer entry point.
+ *
+ * Pair with --wai-ease-* and --wai-dur-* from tokens.css.
+ * ============================================================ */
+
+/* Sphere breathing (idle) ──────────────────────────────────── */
+@keyframes wai-breathe {
+  0%, 100% { transform: scale(1);    filter: brightness(1); }
+  50%      { transform: scale(1.04); filter: brightness(1.18); }
+}
+
+/* Halo breathing (outer glow ring) ─────────────────────────── */
+@keyframes wai-breathe-halo {
+  0%, 100% { transform: scale(1);    opacity: 0.55; }
+  50%      { transform: scale(1.12); opacity: 0.90; }
+}
+
+/* Slow rotation (thinking, working) ────────────────────────── */
+@keyframes wai-rotate-slow {
+  0%   { transform: rotate(0deg);   }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes wai-rotate-rev {
+  0%   { transform: rotate(0deg);    }
+  100% { transform: rotate(-360deg); }
+}
+
+/* Listening pulse rings (radiate outward) ──────────────────── */
+@keyframes wai-pulse-ring {
+  0%   { transform: scale(0.6); opacity: 0.8; }
+  100% { transform: scale(1.7); opacity: 0;   }
+}
+
+/* Voice dot wave (3-dot mic) ───────────────────────────────── */
+@keyframes wai-dot-wave {
+  0%, 100% { transform: scaleY(0.5); opacity: 0.55; }
+  50%      { transform: scaleY(1.6); opacity: 1;    }
+}
+
+/* Idle spark drift (tiny particles) ────────────────────────── */
+@keyframes wai-spark-drift {
+  0%   { transform: translate(0, 0) scale(1);             opacity: 0; }
+  20%  {                                                  opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.4); opacity: 0; }
+}
+
+/* Progress shimmer (sweep highlight) ───────────────────────── */
+@keyframes wai-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Acting beam pulse ────────────────────────────────────────── */
+@keyframes wai-beam-pulse {
+  0%, 100% { opacity: 0.40; }
+  50%      { opacity: 0.85; }
+}
+
+/* Eye blink (every ~5s) ────────────────────────────────────── */
+@keyframes wai-blink {
+  0%, 92%, 100% { transform: scaleY(1);   }
+  95%           { transform: scaleY(0.1); }
+}
+
+/* Caret blink (text input cursor) ──────────────────────────── */
+@keyframes wai-caret-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+/* Error glow (amber, gentle) ───────────────────────────────── */
+@keyframes wai-glow-error {
+  0%, 100% { filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.50)); }
+  50%      { filter: drop-shadow(0 0 24px rgba(245, 158, 11, 0.85)); }
+}
+
+/* Sphere → Panel morph (use with FLIP technique) ───────────── */
+@keyframes wai-morph-out {
+  0%   { transform: scale(1)    translate(0, 0);       border-radius: 50%; }
+  100% { transform: scale(1.2)  translate(-20px, -10px); border-radius: 28px; }
+}
+
+/* Speaking mouth (TTS active — mouth opens with audio amplitude) */
+@keyframes wai-speak {
+  0%, 100% { transform: scaleY(0.8); }
+  50%      { transform: scaleY(1.4); }
+}
