@@ -92,7 +92,7 @@ final class Orchestrator {
     private func openAIPlan(_ text: String) async throws -> Plan {
         let env = ProcessInfo.processInfo.environment
         let key = env["OPENAI_API_KEY"]!
-        let model = env["ALAKEYA_MODEL"] ?? "gpt-4o-mini"
+        let model = env["ALAKEYA_MODEL"] ?? "gpt-4o"
 
         var req = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
         req.httpMethod = "POST"

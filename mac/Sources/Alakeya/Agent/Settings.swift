@@ -31,7 +31,7 @@ struct Settings: Codable {
         var allowedApps = ["Safari", "Chrome", "Notes", "Mail"]
     }
     struct Developer: Codable {
-        var model = "gpt-4o-mini"
+        var model = "gpt-4o"
         var sttModel = "whisper-1"
         var ttsVoice = "alloy"
     }

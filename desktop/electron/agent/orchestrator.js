@@ -98,7 +98,7 @@ function buildReply(text, toolCalls) {
 // ── OpenAI provider (optional) ──────────────────────────────
 async function openaiPlan(text) {
   const key = process.env.OPENAI_API_KEY;
-  const model = process.env.ALAKEYA_MODEL || 'gpt-4o-mini';
+  const model = process.env.ALAKEYA_MODEL || 'gpt-4o';
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
