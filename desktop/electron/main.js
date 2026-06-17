@@ -3,6 +3,7 @@
 // per HANDOFF §5.2 (transparent · frameless · always-on-top · vibrancy).
 // ============================================================
 const path = require('path');
+require('./env').loadEnv(); // load desktop/.env (OPENAI_API_KEY, …) before anything reads it
 const { app, BrowserWindow, systemPreferences } = require('electron');
 const ctx = require('./context');
 const { registerIpc } = require('./ipc');
