@@ -1,0 +1,162 @@
+/* ============================================================
+ * Orb.module.css — styles for the Orb component
+ * ============================================================ */
+
+.orbRoot {
+  position: relative;
+  width: var(--orb-size, 72px);
+  height: var(--orb-size, 72px);
+  flex-shrink: 0;
+}
+
+/* Outer pulsing halo (idle / listening / active) */
+.halo {
+  position: absolute;
+  inset: -20%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--wai-accent-glow) 0%,
+    transparent 70%
+  );
+  animation: wai-breathe-halo var(--wai-dur-breath) ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Listening pulse rings (3 staggered) */
+.pulseRing {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--wai-accent-bright);
+  border-radius: 50%;
+  opacity: 0;
+  animation: wai-pulse-ring 2s infinite;
+  pointer-events: none;
+}
+.pulseRing:nth-child(2) { animation-delay: 0.6s; }
+.pulseRing:nth-child(3) { animation-delay: 1.2s; }
+
+/* Thinking: orbiting particles */
+.orbitWrap {
+  position: absolute;
+  inset: -28%;
+  pointer-events: none;
+}
+.orbit1 { animation: wai-rotate-slow 4s linear infinite; }
+.orbit2 { animation: wai-rotate-rev  6s linear infinite; }
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--wai-accent-bright);
+  box-shadow: 0 0 8px var(--wai-accent);
+}
+
+/* The sphere itself */
+.sphere {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--wai-orb-core);
+  box-shadow: var(--wai-shadow-orb);
+  animation: wai-breathe var(--wai-dur-breath) ease-in-out infinite;
+  transition:
+    box-shadow  var(--wai-dur-fast) var(--wai-ease-out),
+    background  var(--wai-dur-fast) var(--wai-ease-out);
+  -webkit-app-region: no-drag;
+}
+
+/* State variants on .sphere ─────────────────────────────── */
+.sphere.idle       { /* baseline — breathing only */ }
+.sphere.listening  { box-shadow: var(--wai-shadow-orb-bright); animation-duration: 2s; }
+.sphere.thinking   { animation: wai-rotate-slow 8s linear infinite; }
+.sphere.speaking   { animation: wai-breathe 600ms ease-in-out infinite; }
+.sphere.acting     { box-shadow: var(--wai-shadow-orb-bright); }
+.sphere.permission { box-shadow: 0 0 28px rgba(251, 191, 36, 0.55); }
+.sphere.error      {
+  background: var(--wai-orb-core-error);
+  animation: wai-glow-error 2.4s ease-in-out infinite;
+}
+
+/* Eyes */
+.eye {
+  position: absolute;
+  top: 33%;
+  width: 7%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff;
+  animation: wai-blink 5s infinite;
+  transform-origin: center;
+}
+.eyeLeft  { left: 26%; }
+.eyeRight { right: 26%; }
+
+/* Mouth — variants per state */
+.mouth {
+  position: absolute;
+  bottom: 22%;
+  left: 30%;
+  width: 40%;
+  height: 14%;
+  border: 2px solid #fff;
+  border-top: none;
+  border-radius: 0 0 100px 100px;
+  opacity: 0.9;
+  transition: all var(--wai-dur-fast) var(--wai-ease-out);
+}
+.mouth.flat {            /* thinking / acting */
+  height: 0;
+  border-bottom: 2px solid #fff;
+  border-radius: 0;
+  bottom: 28%;
+}
+.mouth.frown {           /* error */
+  border: 2px solid #fff;
+  border-bottom: none;
+  border-radius: 100px 100px 0 0;
+}
+.mouth.speak {           /* TTS active */
+  animation: wai-speak 200ms ease-in-out infinite;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  width: 22%;
+  height: 22%;
+  left: 39%;
+  bottom: 18%;
+}
+
+/* Voice dots replacing mouth (listening) */
+.voiceDots {
+  position: absolute;
+  bottom: 17%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+  height: 18%;
+}
+.voiceDots span {
+  width: 6%;
+  min-width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: #fff;
+  transform-origin: center;
+  animation: wai-dot-wave 0.9s infinite;
+}
+.voiceDots span:nth-child(2) { animation-delay: 0.15s; }
+.voiceDots span:nth-child(3) { animation-delay: 0.30s; }
+
+/* Idle sparks */
+.spark {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--wai-accent-pale);
+  pointer-events: none;
+  animation: wai-spark-drift 3s infinite;
+}

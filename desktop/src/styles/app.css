@@ -1,0 +1,71 @@
+/* ============================================================
+ * app.css — overlay shell layout (on top of tokens / animations /
+ * components from the ALAKEYA design system).
+ * ============================================================ */
+
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+}
+
+/* Transparent window so the desktop shows through the rounded glass
+   (HANDOFF §5.2: transparent + frameless BrowserWindow). */
+body {
+  background: transparent;
+  color: var(--wai-text);
+  font-family: var(--wai-font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+
+.wai-root {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+/* Whole panel is draggable; interactive bits opt out (HANDOFF §5.3). */
+.wai-panel { -webkit-app-region: drag; }
+.wai-panel button,
+.wai-panel input,
+.wai-panel select,
+.wai-panel .wai-mic,
+.wai-panel .wai-quick-cell { -webkit-app-region: no-drag; }
+
+.wai-orb-dock {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  -webkit-app-region: drag;
+}
+.wai-orb-dock .orbRoot,
+.wai-orb-dock button { -webkit-app-region: no-drag; }
+
+/* Modal overlay (permission card, settings, activity, onboarding). */
+.wai-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(3, 3, 9, 0.55);
+  backdrop-filter: blur(8px);
+  z-index: var(--wai-z-permission);
+  -webkit-app-region: no-drag;
+}
+
+.wai-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--wai-bg);
+}
+
+/* When previewing in a plain browser (not the transparent window),
+   paint the backdrop so the glass reads correctly. */
+@media (display-mode: browser) {
+  body { background: var(--wai-bg); }
+}
