@@ -51,6 +51,7 @@ const STATUS_LABEL = {
 export default function AssistantPanel({
   open,
   orbState = 'idle',
+  appearance = {},
   transcript = '',
   currentTask = null,
   onClose,
@@ -81,7 +82,15 @@ export default function AssistantPanel({
     <div className="wai-panel" role="dialog" aria-label="Alakeya assistant">
       {/* Header ─────────────────────────────────────────── */}
       <header className="wai-panel-header">
-        <Orb state={orbState} size={52} onClick={onClose} />
+        <Orb
+          state={orbState}
+          size={52}
+          accent={appearance.accent}
+          glow={appearance.glow}
+          particles={appearance.particles}
+          faceStyle={appearance.faceStyle}
+          onClick={onClose}
+        />
         <div className="wai-panel-meta">
           <div className="wai-panel-name">Alakeya</div>
           <div className="wai-panel-status">

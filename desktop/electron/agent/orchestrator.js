@@ -97,8 +97,10 @@ function buildReply(text, toolCalls) {
 
 // ── OpenAI provider (optional) ──────────────────────────────
 async function openaiPlan(text) {
-  const key = process.env.OPENAI_API_KEY;
-  const model = process.env.ALAKEYA_MODEL || 'gpt-4o';
+  let cfg;
+  try { cfg = require('../context').getConfig(); } catch { cfg = {}; }
+  const key = cfg.apiKey || process.env.OPENAI_API_KEY;
+  const model = cfg.model || process.env.ALAKEYA_MODEL || 'gpt-4o';
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
@@ -120,8 +122,31 @@ async function openaiPlan(text) {
     name: tc.function.name,
     arguments: safeJSON(tc.function.arguments),
   }));
-  const steps = toolCalls.map((t) => ({ label: t.name }));
-  return { steps, toolCalls, reply: msg.content || 'Готово.' };
+  const steps = toolCalls.map((t) => ({ label: stepLabel(t) }));
+  return { steps, toolCalls, reply: msg.content || defaultReply(toolCalls) };
+}
+
+// Human-readable Russian step labels for the panel progress list.
+function stepLabel(t) {
+  const a = t.arguments || {};
+  switch (t.name) {
+    case 'open_app':      return `Открыть ${a.app || ''}`.trim();
+    case 'navigate_url':  return `Открыть ${a.url || 'ссылку'}`;
+    case 'search':        return `Найти: ${(a.query || '').slice(0, 30)}`;
+    case 'type_text':     return 'Ввести текст';
+    case 'click_element': return `Нажать «${a.text || ''}»`;
+    case 'send_message':  return `Отправить сообщение в ${a.target || a.app || ''}`.trim();
+    case 'delete_file':   return `Удалить ${a.target || ''}`.trim();
+    case 'run_shell':     return 'Выполнить команду';
+    case 'read_screen':   return 'Прочитать экран';
+    default:              return t.name;
+  }
+}
+function defaultReply(toolCalls) {
+  if (toolCalls.some((t) => t.name === 'send_message')) return 'Готово, сообщение отправлено.';
+  if (toolCalls.some((t) => t.name === 'open_app')) return 'Открыл, что просил.';
+  if (toolCalls.some((t) => t.name === 'search')) return 'Вот результаты поиска.';
+  return 'Готово.';
 }
 
 function safeJSON(s) { try { return JSON.parse(s); } catch { return {}; } }
@@ -145,11 +170,14 @@ const TOOL_SCHEMAS = [
 ];
 
 function fn(name, description, properties, required) {
+  // NOTE: no `strict: true`. OpenAI strict function-calling requires every
+  // property to appear in `required`; our schemas have optional params, so
+  // strict mode returns HTTP 400 and the agent silently falls back to mock.
   return {
     type: 'function',
     function: {
-      name, description, strict: true,
-      parameters: { type: 'object', additionalProperties: false, properties, required },
+      name, description,
+      parameters: { type: 'object', properties, required },
     },
   };
 }

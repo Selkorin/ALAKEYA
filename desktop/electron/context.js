@@ -13,6 +13,22 @@ let mode = 'manual'; // 'manual' | 'auto' — confirmation policy
 function getMode() { return mode; }
 function setMode(next) { mode = next === 'auto' ? 'auto' : 'manual'; }
 
+// ── Runtime config (model / voice), pushed from the renderer's settings ──
+const config = {
+  model: process.env.ALAKEYA_MODEL || 'gpt-4o',
+  apiKey: process.env.OPENAI_API_KEY || '',
+  ttsEnabled: true,
+  ttsVoice: 'onyx',     // deep, velvety, mature
+  sttModel: 'whisper-1',
+  speed: 1.0,
+};
+function getConfig() { return config; }
+function setConfig(patch = {}) {
+  for (const [k, v] of Object.entries(patch)) {
+    if (v !== undefined && v !== null && v !== '') config[k] = v;
+  }
+}
+
 function send(channel, payload) {
   const wc = windows.orb && !windows.orb.isDestroyed() ? windows.orb.webContents : null;
   wc?.send(channel, payload);
@@ -55,4 +71,7 @@ function addLog(entry) {
 
 function getLog() { return log; }
 
-module.exports = { windows, getMode, setMode, send, addLog, getLog, loadLog };
+module.exports = {
+  windows, getMode, setMode, send, addLog, getLog, loadLog,
+  getConfig, setConfig,
+};

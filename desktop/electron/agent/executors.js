@@ -1,65 +1,88 @@
 // ============================================================
-// executors.js — the actuator layer (computer control).
+// executors.js — the actuator layer (real computer control).
 //
-// On a real Mac these call into the documented control cascade
-// (DOC1/DOC2): Apple Events / AppleScript first, then Accessibility
-// (AXUIElement), then clipboard + ⌘V, then CGEvent as last resort.
+// Control cascade on macOS (DOC1/DOC2):
+//   Apple Events / AppleScript  →  `open`  →  clipboard + ⌘V  →  CGEvent.
 //
-// Here they are SAFE SIMULATIONS so the full flow (orb states,
-// permission gate, activity log) is demoable cross-platform and in CI.
-// Swap each body for the native bridge when wiring the Swift/AX host.
+// Real control is ON by default on macOS. Set ALAKEYA_REAL_CONTROL=0 to
+// force safe simulation (used in CI / on non-mac dev machines). Every
+// risky action is still gated by the permission layer before it runs.
 // ============================================================
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const pexecFile = promisify(execFile);
 
 const IS_MAC = process.platform === 'darwin';
-const SIMULATE = process.env.ALAKEYA_REAL_CONTROL !== '1';
+// Simulate only when explicitly disabled, or when not on macOS.
+const SIMULATE = process.env.ALAKEYA_REAL_CONTROL === '0' || !IS_MAC;
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/** Run an AppleScript snippet (used by several executors on macOS). */
+/** Run an AppleScript snippet on macOS. */
 async function osascript(script) {
-  if (SIMULATE || !IS_MAC) {
-    await wait(220);
-    return { simulated: true, script };
-  }
+  if (SIMULATE) { await wait(180); return { simulated: true, script }; }
   const { stdout } = await pexecFile('osascript', ['-e', script]);
   return { stdout: stdout.trim() };
+}
+
+/** Type text into the frontmost app via the clipboard + ⌘V (robust, fast,
+ *  preserves unicode). Falls back to keystroke for short ASCII. */
+async function pasteText(text) {
+  if (SIMULATE) { await wait(180); return; }
+  // Put text on the clipboard, then paste.
+  await new Promise((resolve, reject) => {
+    const p = execFile('pbcopy', (e) => (e ? reject(e) : resolve()));
+    p.stdin.end(text);
+  });
+  await osascript('tell application "System Events" to keystroke "v" using command down');
 }
 
 const EXECUTORS = {
   // ── low risk ──────────────────────────────────────────────
   async read_screen() {
-    await wait(180);
-    return { ok: true, summary: 'Прочитал активное окно (AX-дерево).' };
+    if (SIMULATE) { await wait(160); return { ok: true, summary: 'Прочитал активное окно (симуляция).' }; }
+    // Name + title of the frontmost window via Accessibility-lite AppleScript.
+    const { stdout } = await osascript(
+      'tell application "System Events" to get name of first application process whose frontmost is true'
+    );
+    return { ok: true, summary: `Активное приложение: ${stdout || '—'}` };
   },
   async screenshot() {
-    await wait(180);
-    return { ok: true, summary: 'Сделал снимок экрана для верификации.' };
+    if (SIMULATE) { await wait(160); return { ok: true, summary: 'Снимок экрана (симуляция).' }; }
+    const out = `/tmp/alakeya-shot-${Date.now()}.png`;
+    await pexecFile('screencapture', ['-x', out]);
+    return { ok: true, summary: `Снимок экрана: ${out}` };
   },
   async search(a) {
-    await wait(200);
-    return { ok: true, summary: `Поиск: ${a.query || a.text || ''}` };
+    const query = a.query || a.text || '';
+    if (SIMULATE) { await wait(180); return { ok: true, summary: `Поиск: ${query}` }; }
+    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+    await pexecFile('open', [url]);
+    return { ok: true, summary: `Поиск: ${query}` };
   },
 
-  // ── medium risk ───────────────────────────────────────────
+  // ── medium risk (gated) ───────────────────────────────────
   async open_app(a) {
-    if (!SIMULATE && IS_MAC) await pexecFile('open', ['-a', a.app]);
-    else await wait(300);
+    if (SIMULATE) { await wait(220); return { ok: true, summary: `Открыл ${a.app} (симуляция)` }; }
+    await pexecFile('open', ['-a', a.app]);
     return { ok: true, summary: `Открыл ${a.app}` };
   },
   async navigate_url(a) {
-    await osascript(`tell application "Safari" to set URL of front document to "${a.url}"`);
+    if (SIMULATE) { await wait(200); return { ok: true, summary: `Открыл ${a.url} (симуляция)` }; }
+    await pexecFile('open', [a.url]);
     return { ok: true, summary: `Открыл ${a.url}` };
   },
   async type_text(a) {
-    // Semantic-first in production: AXSetAttributeValue → paste → CGEvent.
-    await osascript(`tell application "System Events" to keystroke ${JSON.stringify(a.text || '')}`);
+    await pasteText(a.text || '');
     return { ok: true, summary: `Ввёл текст (${(a.text || '').length} симв.)` };
   },
   async click_element(a) {
-    await wait(220);
+    if (SIMULATE) { await wait(200); return { ok: true, summary: `Кликнул по «${a.text || a.target}»` }; }
+    // Best-effort: click a UI element by its title in the frontmost app.
+    await osascript(
+      `tell application "System Events" to tell (first application process whose frontmost is true) ` +
+      `to click (first UI element whose name is ${JSON.stringify(a.text || a.target || '')})`
+    );
     return { ok: true, summary: `Кликнул по «${a.text || a.target}»` };
   },
   async apple_script(a) {
@@ -69,25 +92,34 @@ const EXECUTORS = {
 
   // ── high risk (always gated) ──────────────────────────────
   async send_message(a) {
-    await wait(280);
-    return { ok: true, summary: `Отправил сообщение в ${a.target}` };
+    // Generic path: ensure text is in the field, then press Return.
+    if (!SIMULATE) {
+      if (a.text) await pasteText(a.text);
+      await osascript('tell application "System Events" to key code 36'); // Return
+    } else { await wait(240); }
+    return { ok: true, summary: `Отправил сообщение в ${a.target || a.app || ''}`.trim() };
   },
   async send_email(a) {
-    await wait(280);
+    if (SIMULATE) { await wait(260); return { ok: true, summary: `Отправил письмо: ${a.target}` }; }
+    await osascript('tell application "System Events" to keystroke "d" using {command down, shift down}'); // send in Mail
     return { ok: true, summary: `Отправил письмо: ${a.target}` };
   },
   async delete_file(a) {
-    await wait(200);
-    return { ok: true, summary: `Удалил ${a.target}` };
+    if (SIMULATE) { await wait(200); return { ok: true, summary: `Удалил ${a.target}` }; }
+    await osascript(`tell application "Finder" to delete (POSIX file ${JSON.stringify(a.target)})`);
+    return { ok: true, summary: `Переместил в Корзину: ${a.target}` };
   },
   async run_shell(a) {
-    await wait(200);
-    return { ok: true, summary: `Выполнил команду: ${a.code || a.command}` };
+    const cmd = a.code || a.command || '';
+    if (SIMULATE) { await wait(200); return { ok: true, summary: `Выполнил: ${cmd}` }; }
+    const { stdout } = await pexecFile('/bin/sh', ['-c', cmd]);
+    return { ok: true, summary: `Выполнил: ${cmd}`, stdout };
   },
   async make_payment(a) {
+    // Never executed automatically — surfaced for explicit human action.
     await wait(200);
-    return { ok: true, summary: `Платёж: ${a.target}` };
+    return { ok: true, summary: `Платёж требует ручного подтверждения: ${a.target}` };
   },
 };
 
-module.exports = { EXECUTORS, osascript, SIMULATE, IS_MAC };
+module.exports = { EXECUTORS, osascript, pasteText, SIMULATE, IS_MAC };

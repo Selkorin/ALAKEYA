@@ -100,6 +100,10 @@ function createMock() {
     approveAction: (_id, decision) => pendingResolve && pendingResolve(decision),
     denyAction: () => pendingResolve && pendingResolve('deny'),
     setMode: () => {},
+    setConfig: () => {},
+    setCorner: () => {},
+    tts: async () => null,          // no API key in plain-browser preview
+    stt: async () => ({ ok: false, error: 'STT недоступен в браузере' }),
     openSettings: (tab) => emit('agent:open-settings', tab),
     getStatus: async () => 'Готов',
     getActivity: async () => activity,

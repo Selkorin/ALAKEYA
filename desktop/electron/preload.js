@@ -27,7 +27,13 @@ contextBridge.exposeInMainWorld('api', {
   approveAction: (id, decision) => ipcRenderer.send('agent:approve-action', { id, decision }),
   denyAction: (id) => ipcRenderer.send('agent:approve-action', { id, decision: 'deny' }),
   setMode: (mode) => ipcRenderer.send('agent:set-mode', mode),
+  setConfig: (patch) => ipcRenderer.send('agent:set-config', patch),
+  setCorner: (corner) => ipcRenderer.send('agent:set-corner', corner),
   openSettings: (tab) => ipcRenderer.send('agent:open-settings', tab),
+
+  // voice
+  tts: (text) => ipcRenderer.invoke('agent:tts', text),
+  stt: (bytes, mime) => ipcRenderer.invoke('agent:stt', { bytes, mime }),
 
   // queries
   getStatus: () => ipcRenderer.invoke('agent:get-status'),

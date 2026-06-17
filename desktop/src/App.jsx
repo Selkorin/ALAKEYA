@@ -3,7 +3,7 @@
 // Wires the design-system components to the main process over window.api.
 // Falls back to a local mock when run in a plain browser (design preview).
 // ============================================================
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Orb from './components/alakeya/Orb';
 import AssistantPanel from './components/alakeya/AssistantPanel';
 import PermissionCard from './components/alakeya/PermissionCard';
@@ -13,6 +13,7 @@ import SettingsWindow, { SETTINGS_DEFAULTS } from './components/alakeya/Settings
 import OnboardingFlow from './components/alakeya/OnboardingFlow';
 import { WAI_STATUS_TO_ORB_STATE } from './components/alakeya/orbMachine';
 import { getApi } from './mockApi';
+import { playAudio, stopAudio, createRecorder } from './voice';
 
 const QUICK_PROMPTS = {
   open: 'Открой ',
@@ -27,6 +28,22 @@ const QUICK_PROMPTS = {
 
 const api = getApi();
 
+const SIZE_PX = { small: 64, medium: 80, large: 96 };
+
+// Deep-merge persisted settings over defaults so new keys always exist.
+function loadSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('alakeya.settings') || '{}');
+    const merged = { ...SETTINGS_DEFAULTS };
+    for (const group of Object.keys(SETTINGS_DEFAULTS)) {
+      merged[group] = { ...SETTINGS_DEFAULTS[group], ...(saved[group] || {}) };
+    }
+    return merged;
+  } catch {
+    return SETTINGS_DEFAULTS;
+  }
+}
+
 export default function App() {
   const [status, setStatus] = useState('Готов');
   const [panelOpen, setPanelOpen] = useState(false);
@@ -36,18 +53,33 @@ export default function App() {
   const [errorMsg, setErrorMsg] = useState(null);
   const [activity, setActivity] = useState([]);
   const [showActivity, setShowActivity] = useState(false);
-  const [settings, setSettings] = useState(SETTINGS_DEFAULTS);
+  const [settings, setSettings] = useState(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTab, setSettingsTab] = useState('appearance');
   const [onboarded, setOnboarded] = useState(
     () => localStorage.getItem('alakeya.onboarded') === '1'
   );
 
+  const appearance = settings.appearance;
+  const recorderRef = useRef(null);
+  const ttsEnabledRef = useRef(settings.voice.ttsEnabled);
+  ttsEnabledRef.current = settings.voice.ttsEnabled;
+
   // Subscribe to main-process events.
   useEffect(() => {
     const offs = [
       api.onStatus(setStatus),
-      api.onTranscript(({ text }) => setTranscript(text)),
+      api.onTranscript((p) => {
+        const { text, role } = p || {};
+        if (role === 'assistant') {
+          // Speak the reply in the velvety voice (if enabled + key present).
+          if (ttsEnabledRef.current) {
+            api.tts?.(text).then((audio) => audio && playAudio(audio));
+          }
+        } else {
+          setTranscript(text || '');
+        }
+      }),
       api.onTask(setTask),
       api.onApproval(setPendingAction),
       api.onError(({ message, blocked }) => setErrorMsg({ message, blocked })),
@@ -58,11 +90,31 @@ export default function App() {
     return () => offs.forEach((off) => off && off());
   }, []);
 
-  // Apply the chosen accent live (token override).
+  // Persist settings whenever they change, and forward the model/voice
+  // preferences to the main process so the orchestrator + TTS use them.
   useEffect(() => {
-    const accent = settings.appearance.accent;
-    document.documentElement.style.setProperty('--wai-accent', accent);
-  }, [settings.appearance.accent]);
+    localStorage.setItem('alakeya.settings', JSON.stringify(settings));
+    api.setConfig?.({
+      model: settings.developer.model,
+      apiKey: settings.developer.apiKey || undefined,
+      ttsEnabled: settings.voice.ttsEnabled,
+      ttsVoice: settings.voice.ttsVoice,
+      sttModel: settings.developer.sttModel,
+      speed: settings.voice.speed,
+    });
+  }, [settings]);
+
+  // Apply the chosen accent + glow live (global token overrides).
+  useEffect(() => {
+    const root = document.documentElement.style;
+    root.setProperty('--wai-accent', appearance.accent);
+    root.setProperty('--orb-glow', String(appearance.glow));
+  }, [appearance.accent, appearance.glow]);
+
+  // Tell the main process which screen corner to dock the window into.
+  useEffect(() => {
+    api.setCorner?.(appearance.corner);
+  }, [appearance.corner]);
 
   const orbState = WAI_STATUS_TO_ORB_STATE[status] || 'idle';
 
@@ -77,6 +129,37 @@ export default function App() {
     const prompt = QUICK_PROMPTS[id];
     if (prompt) submit(prompt);
   };
+
+  // Push-to-talk: record the mic, then transcribe with Whisper and run it.
+  const startVoice = useCallback(async () => {
+    stopAudio();
+    try {
+      const rec = createRecorder();
+      await rec.start();
+      recorderRef.current = rec;
+      api.startListening();
+    } catch (e) {
+      setErrorMsg({ message: 'Нет доступа к микрофону.', blocked: true });
+    }
+  }, []);
+
+  const stopVoice = useCallback(async () => {
+    const rec = recorderRef.current;
+    recorderRef.current = null;
+    if (!rec) { api.stopListening(); return; }
+    setStatus('Думаю');
+    const captured = await rec.stop();
+    api.stopListening();
+    if (!captured) return;
+    const res = await api.stt?.(captured.bytes, captured.mime);
+    if (res?.ok && res.text) {
+      setTranscript(res.text);
+      submit(res.text);
+    } else {
+      setStatus('Готов');
+      if (res?.error) setErrorMsg({ message: res.error, blocked: false });
+    }
+  }, [submit]);
 
   const approve = (decision) => {
     if (pendingAction) api.approveAction(pendingAction.id, decision);
@@ -94,7 +177,14 @@ export default function App() {
 
   const completeOnboarding = (collected) => {
     localStorage.setItem('alakeya.onboarded', '1');
-    if (collected?.accent) changeSetting('appearance.accent', collected.accent);
+    setSettings((prev) => ({
+      ...prev,
+      appearance: {
+        ...prev.appearance,
+        ...(collected?.accent ? { accent: collected.accent } : {}),
+        ...(collected?.faceStyle ? { faceStyle: collected.faceStyle } : {}),
+      },
+    }));
     setOnboarded(true);
   };
 
@@ -110,19 +200,28 @@ export default function App() {
     <div className="wai-root">
       {!panelOpen && (
         <div className="wai-orb-dock">
-          <Orb state={orbState} size={72} onClick={() => setPanelOpen(true)} />
+          <Orb
+            state={orbState}
+            size={SIZE_PX[appearance.size] || 80}
+            accent={appearance.accent}
+            glow={appearance.glow}
+            particles={appearance.particles}
+            faceStyle={appearance.faceStyle}
+            onClick={() => setPanelOpen(true)}
+          />
         </div>
       )}
 
       <AssistantPanel
         open={panelOpen}
         orbState={orbState}
+        appearance={appearance}
         transcript={transcript}
         currentTask={task}
         onClose={() => setPanelOpen(false)}
         onSubmit={submit}
-        onVoiceStart={() => api.startListening()}
-        onVoiceStop={() => api.stopListening()}
+        onVoiceStart={startVoice}
+        onVoiceStop={stopVoice}
         onQuickAction={onQuickAction}
       />
 

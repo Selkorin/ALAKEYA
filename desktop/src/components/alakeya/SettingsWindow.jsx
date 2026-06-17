@@ -14,6 +14,9 @@
 // ============================================================
 
 import React, { useState } from 'react';
+import Orb from './Orb';
+
+const SIZE_PX = { small: 64, medium: 80, large: 96 };
 
 const TABS = [
   { id: 'appearance',  label: 'Внешний вид',  group: 'general' },
@@ -36,10 +39,11 @@ export const SETTINGS_DEFAULTS = {
     accent: '#06B6D4',
   },
   voice: {
-    activation: 'wake',       // 'click' | 'wake' | 'push'
+    activation: 'push',       // 'click' | 'wake' | 'push'
     wakeWord: 'Hey Alakeya',
     micDeviceId: 'default',
     ttsEnabled: true,
+    ttsVoice: 'onyx',         // onyx = глубокий, бархатный, взрослый
     speed: 1.0,
     personality: 'calm',
   },
@@ -57,12 +61,12 @@ export const SETTINGS_DEFAULTS = {
   },
   developer: {
     apiKey: '',
-    model: 'gpt-4o-mini',
+    model: 'gpt-4o',
     localFallback: 'llama3:8b',
     sttModel: 'whisper-1',
-    ttsVoice: 'alloy',
+    ttsVoice: 'onyx',
     dailyLimit: 5.0,
-    usageToday: 0.42,
+    usageToday: 0.0,
   },
 };
 
@@ -149,6 +153,22 @@ function AppearanceTab({ settings, set }) {
       <h3 className="wai-settings-h">Внешний вид</h3>
       <p className="wai-settings-p">Как Alakeya выглядит и где живёт на экране.</p>
 
+      <div style={{
+        display: 'flex', justifyContent: 'center', alignItems: 'center',
+        height: 120, marginBottom: 24,
+        background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--wai-r-lg)',
+        border: '1px solid var(--wai-line)',
+      }}>
+        <Orb
+          state="idle"
+          size={SIZE_PX[settings.size] || 80}
+          accent={settings.accent}
+          glow={settings.glow}
+          particles={settings.particles}
+          faceStyle={settings.faceStyle}
+        />
+      </div>
+
       <Field label="Размер" value={`${settings.size === 'small' ? '64' : settings.size === 'large' ? '96' : '80'} px`}>
         <SegmentedControl
           value={settings.size}
@@ -165,8 +185,24 @@ function AppearanceTab({ settings, set }) {
         <CornerPicker value={settings.corner} onChange={(v) => set('corner', v)} />
       </Field>
 
+      <Field label="Стиль лица" value={faceLabel(settings.faceStyle)}>
+        <SegmentedControl
+          value={settings.faceStyle}
+          onChange={(v) => set('faceStyle', v)}
+          options={[
+            { value: 'minimal',    label: 'Минимальный' },
+            { value: 'friendly',   label: 'Дружелюбный' },
+            { value: 'futuristic', label: 'Футуристичный' },
+          ]}
+        />
+      </Field>
+
       <Field label="Интенсивность свечения" value={`${Math.round(settings.glow * 100)}%`}>
         <Slider value={settings.glow} onChange={(v) => set('glow', v)} />
+      </Field>
+
+      <Field label="Частицы" value={`${Math.round(settings.particles * 100)}%`}>
+        <Slider value={settings.particles} onChange={(v) => set('particles', v)} />
       </Field>
 
       <Field label="Акцентный цвет">
@@ -174,6 +210,10 @@ function AppearanceTab({ settings, set }) {
       </Field>
     </>
   );
+}
+
+function faceLabel(f) {
+  return { minimal: 'Минимальный', friendly: 'Дружелюбный', futuristic: 'Футуристичный' }[f] || '';
 }
 
 function VoiceTab({ settings, set }) {
@@ -211,20 +251,36 @@ function VoiceTab({ settings, set }) {
         </select>
       </Field>
 
-      <Field label="Личность голоса">
-        <SegmentedControl
-          value={settings.personality}
-          onChange={(v) => set('personality', v)}
-          options={[
-            { value: 'calm',         label: 'Спокойный' },
-            { value: 'professional', label: 'Деловой' },
-            { value: 'friendly',     label: 'Дружелюбный' },
-            { value: 'fast',         label: 'Быстрый' },
-          ]}
-        />
+      <Toggle
+        label="Озвучивать ответы"
+        desc="Alakeya говорит вслух (OpenAI TTS)"
+        value={settings.ttsEnabled}
+        onChange={(v) => set('ttsEnabled', v)}
+      />
+
+      <Field label="Голос" value={voiceLabel(settings.ttsVoice)}>
+        <select className="wai-settings-input" value={settings.ttsVoice} onChange={(e) => set('ttsVoice', e.target.value)}>
+          <option value="onyx">Onyx — глубокий, бархатный (муж.)</option>
+          <option value="echo">Echo — спокойный, взрослый (муж.)</option>
+          <option value="ash">Ash — мягкий, тёплый</option>
+          <option value="alloy">Alloy — нейтральный</option>
+          <option value="nova">Nova — лёгкий (жен.)</option>
+          <option value="shimmer">Shimmer — мягкий (жен.)</option>
+        </select>
+      </Field>
+
+      <Field label="Скорость речи" value={`${settings.speed.toFixed(2)}×`}>
+        <Slider value={(settings.speed - 0.5) / 1.5} onChange={(v) => set('speed', +(0.5 + v * 1.5).toFixed(2))} />
       </Field>
     </>
   );
+}
+
+function voiceLabel(v) {
+  return {
+    onyx: 'Onyx', echo: 'Echo', ash: 'Ash',
+    alloy: 'Alloy', nova: 'Nova', shimmer: 'Shimmer',
+  }[v] || v;
 }
 
 function PermissionsTab({ perms, set }) {

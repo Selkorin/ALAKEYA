@@ -46,7 +46,7 @@ export default function OnboardingFlow({ onComplete, onSkip }) {
         {step === 2 && <Permissions perms={collected.permissions} onToggle={(k, v) => update({ permissions: { ...collected.permissions, [k]: v } })} />}
         {step === 3 && <Safety />}
         {step === 4 && <Personalize accent={collected.accent} face={collected.faceStyle} onChange={update} />}
-        {step === 5 && <Ready />}
+        {step === 5 && <Ready accent={collected.accent} face={collected.faceStyle} />}
       </div>
 
       <footer className="wai-onboard-foot">
@@ -199,7 +199,7 @@ function Personalize({ accent, face, onChange }) {
       <h2 className="wai-onboard-h" style={{ textAlign: 'center', marginBottom: 4 }}>Сделай своим</h2>
       <p className="wai-onboard-p" style={{ textAlign: 'center', marginBottom: 20 }}>Выбери цвет и стиль лица.</p>
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-        <Orb state="idle" size={72} />
+        <Orb state="idle" size={88} accent={accent} faceStyle={face} />
       </div>
       <div style={{ fontFamily: 'var(--wai-font-mono)', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--wai-text-muted)', marginBottom: 8 }}>Акцент</div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 22 }}>
@@ -229,10 +229,10 @@ function Personalize({ accent, face, onChange }) {
   );
 }
 
-function Ready() {
+function Ready({ accent, face }) {
   return (
     <div className="wai-onboard-center">
-      <Orb state="idle" size={104} />
+      <Orb state="idle" size={104} accent={accent} faceStyle={face} />
       <h2 className="wai-onboard-h" style={{ marginTop: 32 }}>Всё готово.</h2>
       <p className="wai-onboard-p">
         Скажи «Hey Alakeya» в любое время,<br />

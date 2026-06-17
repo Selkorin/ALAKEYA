@@ -30,6 +30,7 @@
     var(--wai-accent-glow) 0%,
     transparent 70%
   );
+  opacity: calc(0.4 + var(--orb-glow, 0.68) * 0.6);
   animation: wai-breathe-halo var(--wai-dur-breath) ease-in-out infinite;
   pointer-events: none;
 }
@@ -160,6 +161,22 @@
 }
 .voiceDots span:nth-child(2) { animation-delay: 0.15s; }
 .voiceDots span:nth-child(3) { animation-delay: 0.30s; }
+
+/* ── Face-style variants (set via Orb `faceStyle` prop) ───── */
+/* minimal: calmer, smaller features, no mouth curve */
+.face-minimal .eye { width: 6%; top: 36%; }
+.face-minimal .mouth { width: 26%; left: 37%; height: 8%; opacity: 0.6; }
+.face-minimal .halo { opacity: calc(0.25 + var(--orb-glow, 0.68) * 0.4); }
+
+/* futuristic: sharper glow, wider-set glowing eyes */
+.face-futuristic .eye {
+  width: 8%; top: 31%;
+  background: var(--wai-accent-pale);
+  box-shadow: 0 0 6px var(--wai-accent-bright);
+}
+.face-futuristic .eyeLeft  { left: 23%; }
+.face-futuristic .eyeRight { right: 23%; }
+.face-futuristic .sphere { box-shadow: var(--wai-shadow-orb-bright); }
 
 /* Idle sparks */
 .spark {
