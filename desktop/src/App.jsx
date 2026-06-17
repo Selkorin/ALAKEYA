@@ -14,6 +14,10 @@ import OnboardingFlow from './components/alakeya/OnboardingFlow';
 import { WAI_STATUS_TO_ORB_STATE } from './components/alakeya/orbMachine';
 import { getApi } from './mockApi';
 import { playAudio, stopAudio, createRecorder } from './voice';
+import { sounds, setSoundEnabled } from './sounds';
+import { createWakeWord } from './wakeword';
+
+const SLEEP_AFTER_MS = 60_000; // go translucent + sleep after 1 min idle
 
 const QUICK_PROMPTS = {
   open: 'Открой ',
@@ -61,7 +65,12 @@ export default function App() {
   );
 
   const appearance = settings.appearance;
+  const [asleep, setAsleep] = useState(false);
   const recorderRef = useRef(null);
+  const sleepTimerRef = useRef(null);
+  const wakeRef = useRef(null);
+  const startVoiceRef = useRef(null);
+  const prevStatusRef = useRef('Готов');
   const ttsEnabledRef = useRef(settings.voice.ttsEnabled);
   ttsEnabledRef.current = settings.voice.ttsEnabled;
 
@@ -116,6 +125,66 @@ export default function App() {
     api.setCorner?.(appearance.corner);
   }, [appearance.corner]);
 
+  // Keep the synth sound library in sync with the setting.
+  useEffect(() => { setSoundEnabled(settings.voice.sounds !== false); }, [settings.voice.sounds]);
+
+  // Wake Alakeya: restore from sleep, full opacity, pleasant chime.
+  const wake = useCallback(() => {
+    setAsleep((was) => {
+      if (was) sounds.wake();
+      return false;
+    });
+    api.setAsleep?.(false);
+  }, []);
+
+  // Put Alakeya to sleep: translucent window + faint sleep animation.
+  const sleep = useCallback(() => {
+    setAsleep(true);
+    sounds.sleep();
+    api.setAsleep?.(true);
+  }, []);
+
+  // Idle → sleep timer. Resets on any status change, panel open, or
+  // pending approval. Only sleeps when truly idle ("Готов") and closed.
+  useEffect(() => {
+    clearTimeout(sleepTimerRef.current);
+    const idle = status === 'Готов' && !panelOpen && !pendingAction && !showSettings && !showActivity;
+    if (idle && !asleep) {
+      sleepTimerRef.current = setTimeout(sleep, SLEEP_AFTER_MS);
+    } else if (!idle && asleep) {
+      wake();
+    }
+    return () => clearTimeout(sleepTimerRef.current);
+  }, [status, panelOpen, pendingAction, showSettings, showActivity, asleep, sleep, wake]);
+
+  // Always-on wake word ("Алакея") when activation = wake.
+  useEffect(() => {
+    if (settings.voice.activation !== 'wake') {
+      wakeRef.current?.stop();
+      wakeRef.current = null;
+      return;
+    }
+    const ww = createWakeWord(() => {
+      wake();
+      setPanelOpen(true);
+      startVoiceRef.current?.();
+    });
+    ww.start();
+    wakeRef.current = ww;
+    return () => ww.stop();
+  }, [settings.voice.activation, wake]);
+
+  // Event sounds on status transitions (send / success / error).
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    if (status !== prev) {
+      if (status === 'Ошибка') sounds.error();
+      else if (prev === 'Говорю' && status === 'Готов') sounds.success();
+      else if (prev === 'Готов' && status === 'Думаю') sounds.send();
+      prevStatusRef.current = status;
+    }
+  }, [status]);
+
   const orbState = WAI_STATUS_TO_ORB_STATE[status] || 'idle';
 
   const submit = useCallback((text) => {
@@ -133,15 +202,18 @@ export default function App() {
   // Push-to-talk: record the mic, then transcribe with Whisper and run it.
   const startVoice = useCallback(async () => {
     stopAudio();
+    wake();
     try {
       const rec = createRecorder();
       await rec.start();
       recorderRef.current = rec;
+      sounds.listen();
       api.startListening();
     } catch (e) {
       setErrorMsg({ message: 'Нет доступа к микрофону.', blocked: true });
     }
-  }, []);
+  }, [wake]);
+  startVoiceRef.current = startVoice;
 
   const stopVoice = useCallback(async () => {
     const rec = recorderRef.current;
@@ -207,7 +279,8 @@ export default function App() {
             glow={appearance.glow}
             particles={appearance.particles}
             faceStyle={appearance.faceStyle}
-            onClick={() => setPanelOpen(true)}
+            sleeping={asleep}
+            onClick={() => { wake(); setPanelOpen(true); }}
           />
         </div>
       )}
@@ -223,6 +296,7 @@ export default function App() {
         onVoiceStart={startVoice}
         onVoiceStop={stopVoice}
         onQuickAction={onQuickAction}
+        onShowActivity={() => setShowActivity(true)}
       />
 
       {pendingAction && (
@@ -252,6 +326,7 @@ export default function App() {
           <div onClick={(e) => e.stopPropagation()}>
             <SettingsWindow
               settings={settings}
+              initialTab={settingsTab}
               permissions={{ screen: 'granted', mic: 'granted', mouse: 'off', keyboard: 'off' }}
               onChange={changeSetting}
               onClose={() => setShowSettings(false)}

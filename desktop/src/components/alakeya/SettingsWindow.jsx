@@ -46,6 +46,7 @@ export const SETTINGS_DEFAULTS = {
     ttsVoice: 'onyx',         // onyx = глубокий, бархатный, взрослый
     speed: 1.0,
     personality: 'calm',
+    sounds: true,             // приятные звуковые сигналы (появление и т.д.)
   },
   automation: {
     askEvery: true,
@@ -76,8 +77,9 @@ export default function SettingsWindow({
   onChange,
   onClose,
   onForgetMemory,
+  initialTab = 'appearance',
 }) {
-  const [tab, setTab] = useState('appearance');
+  const [tab, setTab] = useState(initialTab);
   const set = (path, val) => onChange?.(path, val);
 
   return (
@@ -256,6 +258,13 @@ function VoiceTab({ settings, set }) {
         desc="Alakeya говорит вслух (OpenAI TTS)"
         value={settings.ttsEnabled}
         onChange={(v) => set('ttsEnabled', v)}
+      />
+
+      <Toggle
+        label="Звуковые сигналы"
+        desc="Мягкий звук при появлении, прослушивании, готовности"
+        value={settings.sounds !== false}
+        onChange={(v) => set('sounds', v)}
       />
 
       <Field label="Голос" value={voiceLabel(settings.ttsVoice)}>

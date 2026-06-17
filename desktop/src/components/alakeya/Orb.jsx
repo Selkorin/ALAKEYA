@@ -44,6 +44,7 @@ export default function Orb({
   glow = 0.68,
   particles = 0.5,
   faceStyle = 'friendly',
+  sleeping = false,
   ariaLabel = 'Alakeya assistant',
 }) {
   const safeState = VALID_STATES.includes(state) ? state : 'idle';
@@ -53,10 +54,10 @@ export default function Orb({
     safeState === 'error'                              ? 'frown' :
     safeState === 'speaking'                           ? 'speak' : '';
 
-  const showVoiceDots = safeState === 'listening';
-  const showPulseRings = safeState === 'listening';
-  const showOrbitals = safeState === 'thinking';
-  const showSparks = safeState === 'idle' && particles > 0.05;
+  const showVoiceDots = safeState === 'listening' && !sleeping;
+  const showPulseRings = safeState === 'listening' && !sleeping;
+  const showOrbitals = safeState === 'thinking' && !sleeping;
+  const showSparks = safeState === 'idle' && particles > 0.05 && !sleeping;
 
   // Per-instance accent override. Falls back to the global token when no
   // accent prop is supplied, so existing usages keep working.
@@ -79,7 +80,7 @@ export default function Orb({
   return (
     <button
       type="button"
-      className={`${styles.orbRoot} ${styles[`face-${faceStyle}`] || ''}`}
+      className={`${styles.orbRoot} ${styles[`face-${faceStyle}`] || ''} ${sleeping ? styles.sleeping : ''}`}
       style={vars}
       onClick={onClick}
       aria-label={ariaLabel}
@@ -125,6 +126,12 @@ export default function Orb({
           <span className={styles.spark} style={{ top: '-10%', left: '30%', '--dx': '8px', '--dy': '-14px' }} />
           <span className={styles.spark} style={{ bottom: '5%', right: '-6%', animationDelay: '0.6s', '--dx': '12px', '--dy': '6px' }} />
           <span className={styles.spark} style={{ top: '15%', right: '-10%', animationDelay: '1.2s', '--dx': '14px', '--dy': '-8px' }} />
+        </div>
+      )}
+
+      {sleeping && (
+        <div className={styles.zzz} aria-hidden="true">
+          <span>z</span><span>z</span><span>z</span>
         </div>
       )}
     </button>

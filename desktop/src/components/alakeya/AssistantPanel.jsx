@@ -24,7 +24,7 @@ import Orb from './Orb';
 import {
   IconOpen, IconSearch, IconSummarize, IconWrite,
   IconFiles, IconImage, IconTranslate, IconSettings,
-  IconMinus, IconClose,
+  IconHistory, IconMinus, IconClose,
 } from './Icons';
 
 const QUICK_ACTIONS = [
@@ -59,6 +59,7 @@ export default function AssistantPanel({
   onVoiceStart,
   onVoiceStop,
   onQuickAction,
+  onShowActivity,
 }) {
   const [text, setText] = useState('');
   const inputRef = useRef(null);
@@ -98,8 +99,9 @@ export default function AssistantPanel({
             {STATUS_LABEL[orbState]}
           </div>
         </div>
-        <button className="wai-icon-btn" onClick={onClose} aria-label="Minimize"><IconMinus /></button>
-        <button className="wai-icon-btn" onClick={onClose} aria-label="Close"><IconClose /></button>
+        <button className="wai-icon-btn" onClick={onShowActivity} aria-label="Журнал действий" title="Журнал действий"><IconHistory /></button>
+        <button className="wai-icon-btn" onClick={onClose} aria-label="Свернуть"><IconMinus /></button>
+        <button className="wai-icon-btn" onClick={onClose} aria-label="Закрыть"><IconClose /></button>
       </header>
 
       {/* Live transcript (only while listening) ─────────── */}

@@ -178,6 +178,55 @@
 .face-futuristic .eyeRight { right: 23%; }
 .face-futuristic .sphere { box-shadow: var(--wai-shadow-orb-bright); }
 
+/* ── Sleep state (after idle timeout): barely-there, slow breath ── */
+.sleeping {
+  opacity: 0.42;
+  transition: opacity 1.2s var(--wai-ease-out);
+  animation: wai-sleep-float 7s ease-in-out infinite;
+}
+.sleeping:hover { opacity: 0.85; }
+.sleeping .halo { opacity: 0.12; }
+.sleeping .sphere {
+  animation: wai-breathe 7s ease-in-out infinite !important;
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.5),
+              inset -4px -4px 12px rgba(0, 0, 0, 0.55);
+  filter: saturate(0.6) brightness(0.8);
+}
+/* eyes closed → thin calm lines */
+.sleeping .eye {
+  height: 2px;
+  border-radius: 2px;
+  top: 41%;
+  animation: none;
+}
+.sleeping .mouth { opacity: 0.25; height: 6%; }
+@keyframes wai-sleep-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+.zzz {
+  position: absolute;
+  top: -18%; right: -6%;
+  display: flex; gap: 1px;
+  pointer-events: none;
+}
+.zzz span {
+  font-family: var(--wai-font-sans);
+  font-weight: 600;
+  color: var(--wai-accent-bright);
+  opacity: 0;
+  animation: wai-zzz 3.2s ease-in-out infinite;
+}
+.zzz span:nth-child(1) { font-size: 9px;  animation-delay: 0s;   }
+.zzz span:nth-child(2) { font-size: 11px; animation-delay: 0.4s; }
+.zzz span:nth-child(3) { font-size: 13px; animation-delay: 0.8s; }
+@keyframes wai-zzz {
+  0%   { opacity: 0; transform: translate(0, 4px) scale(0.7); }
+  35%  { opacity: 0.7; }
+  70%  { opacity: 0; transform: translate(6px, -8px) scale(1); }
+  100% { opacity: 0; }
+}
+
 /* Idle sparks */
 .spark {
   position: absolute;

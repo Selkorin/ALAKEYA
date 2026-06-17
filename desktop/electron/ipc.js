@@ -55,6 +55,12 @@ function registerIpc() {
 
   ipcMain.on('agent:set-corner', (_e, corner) => moveToCorner(corner));
 
+  // Dim the whole overlay window when Alakeya falls asleep.
+  ipcMain.on('agent:set-asleep', (_e, asleep) => {
+    const win = ctx.windows.orb;
+    if (win && !win.isDestroyed()) win.setOpacity(asleep ? 0.55 : 1);
+  });
+
   ipcMain.on('agent:open-settings', (_e, _tab) => {
     ctx.send('agent:open-settings', _tab || 'permissions');
   });

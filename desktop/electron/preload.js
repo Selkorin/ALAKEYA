@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('api', {
   setMode: (mode) => ipcRenderer.send('agent:set-mode', mode),
   setConfig: (patch) => ipcRenderer.send('agent:set-config', patch),
   setCorner: (corner) => ipcRenderer.send('agent:set-corner', corner),
+  setAsleep: (asleep) => ipcRenderer.send('agent:set-asleep', asleep),
   openSettings: (tab) => ipcRenderer.send('agent:open-settings', tab),
 
   // voice

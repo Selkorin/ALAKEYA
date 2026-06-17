@@ -11,6 +11,7 @@
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const pexecFile = promisify(execFile);
+const input = require('./input'); // nut.js wrapper (with AppleScript fallback)
 
 const IS_MAC = process.platform === 'darwin';
 // Simulate only when explicitly disabled, or when not on macOS.
@@ -25,16 +26,26 @@ async function osascript(script) {
   return { stdout: stdout.trim() };
 }
 
-/** Type text into the frontmost app via the clipboard + ⌘V (robust, fast,
- *  preserves unicode). Falls back to keystroke for short ASCII. */
+/** Type text into the frontmost app. Prefers nut.js (reliable, app-agnostic);
+ *  falls back to clipboard + ⌘V which preserves unicode and is fast. */
 async function pasteText(text) {
   if (SIMULATE) { await wait(180); return; }
-  // Put text on the clipboard, then paste.
+  if (input.available()) {
+    if (await input.typeText(text)) return;
+  }
+  // Fallback: clipboard + paste.
   await new Promise((resolve, reject) => {
     const p = execFile('pbcopy', (e) => (e ? reject(e) : resolve()));
     p.stdin.end(text);
   });
   await osascript('tell application "System Events" to keystroke "v" using command down');
+}
+
+/** Press Return in the frontmost app (nut.js, else AppleScript key code 36). */
+async function pressEnter() {
+  if (SIMULATE) { await wait(60); return; }
+  if (input.available() && await input.pressEnter()) return;
+  await osascript('tell application "System Events" to key code 36');
 }
 
 const EXECUTORS = {
@@ -95,7 +106,7 @@ const EXECUTORS = {
     // Generic path: ensure text is in the field, then press Return.
     if (!SIMULATE) {
       if (a.text) await pasteText(a.text);
-      await osascript('tell application "System Events" to key code 36'); // Return
+      await pressEnter();
     } else { await wait(240); }
     return { ok: true, summary: `Отправил сообщение в ${a.target || a.app || ''}`.trim() };
   },
@@ -122,4 +133,4 @@ const EXECUTORS = {
   },
 };
 
-module.exports = { EXECUTORS, osascript, pasteText, SIMULATE, IS_MAC };
+module.exports = { EXECUTORS, osascript, pasteText, pressEnter, SIMULATE, IS_MAC };

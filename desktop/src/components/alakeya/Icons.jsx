@@ -78,6 +78,14 @@ export const IconSettings = (p) => (
   </svg>
 );
 
+export const IconHistory = (p) => (
+  <svg {...base} {...p} width="16" height="16">
+    <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+    <path d="M3 4v4h4" />
+    <path d="M12 8v4l3 2" />
+  </svg>
+);
+
 export const IconMinus = (p) => (
   <svg {...base} {...p} width="14" height="14">
     <path d="M5 12h14" />
