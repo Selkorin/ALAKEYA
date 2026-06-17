@@ -6,6 +6,7 @@ const { agentStatus, STATUS } = require('./status');
 const { EXECUTORS } = require('./executors');
 const { actionFromToolCall } = require('./actionFromToolCall');
 const orchestrator = require('./orchestrator');
+const training = require('./training');
 const ctx = require('../context');
 const {
   classifyRisk, shouldAutoConfirm, rememberedRules, saveRules, askUser,
@@ -82,6 +83,11 @@ async function runTask(text) {
     if (!r.ok) {
       steps[i].status = r.denied ? 'pending' : 'blocked';
       pushTask();
+      // Record the (partial) attempt for training, marked accordingly.
+      training.record({
+        task: text, toolCalls: planned.toolCalls, reply: planned.reply,
+        quality: r.denied ? 'denied' : 'error',
+      });
       return; // stop the chain on deny/error
     }
     steps[i].status = 'done';
@@ -94,6 +100,9 @@ async function runTask(text) {
     await new Promise((r) => setTimeout(r, Math.min(2200, 600 + planned.reply.length * 35)));
   }
   agentStatus.set(STATUS.READY);
+
+  // Successful run → a clean training example.
+  training.record({ task: text, toolCalls: planned.toolCalls, reply: planned.reply, quality: 'ok' });
 }
 
 module.exports = { runTool, runTask };

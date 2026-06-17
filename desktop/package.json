@@ -14,6 +14,8 @@
     "preview": "vite preview --port 5174",
     "start": "electron .",
     "dist:mac": "npm run build && electron-builder --mac",
+    "finetune:prepare": "node scripts/finetune.mjs",
+    "finetune:run": "node scripts/finetune.mjs --run",
     "lint": "node --check electron/main.js && node --check electron/preload.js"
   },
   "dependencies": {

@@ -12,6 +12,7 @@ const { agentStatus, STATUS } = require('./agent/status');
 const { runTask } = require('./agent/toolRunner');
 const { resolveDecision } = require('./permissions');
 const voice = require('./agent/voice');
+const training = require('./agent/training');
 const ctx = require('./context');
 
 let listening = false;
@@ -82,6 +83,9 @@ function registerIpc() {
       return { ok: false, error: e.message };
     }
   });
+
+  // Export the collected fine-tuning dataset (clean JSONL string).
+  ipcMain.handle('agent:export-training', (_e, opts) => training.exportJsonl(opts || {}));
 
   // ── queries ───────────────────────────────────────────────
   ipcMain.handle('agent:get-status', () => agentStatus.current);

@@ -411,7 +411,40 @@ function DeveloperTab({ settings, set }) {
           <div style={{ width: `${(settings.usageToday / settings.dailyLimit) * 100}%` }} />
         </div>
       </div>
+
+      <TrainingExport />
     </>
+  );
+}
+
+function TrainingExport() {
+  const [info, setInfo] = React.useState(null);
+  const refresh = () =>
+    window.api?.exportTraining?.({ onlyOk: true }).then(setInfo).catch(() => {});
+  React.useEffect(() => { refresh(); }, []);
+
+  const download = async () => {
+    const data = await window.api?.exportTraining?.({ onlyOk: true });
+    if (!data?.jsonl) return;
+    const blob = new Blob([data.jsonl], { type: 'application/jsonl' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'alakeya-finetune.jsonl'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Field label="Данные для обучения">
+      <div style={{ fontSize: 11, color: 'var(--wai-text-muted)', marginBottom: 10 }}>
+        {info
+          ? `Собрано примеров: ${info.total} · готовых к обучению: ${info.count}`
+          : 'Каждая выполненная задача сохраняется как пример (задача → действия).'}
+      </div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button className="wai-btn wai-btn-secondary" style={{ flex: 1 }} onClick={refresh}>Обновить</button>
+        <button className="wai-btn wai-btn-primary" style={{ flex: 1 }} onClick={download}>Скачать .jsonl</button>
+      </div>
+    </Field>
   );
 }
 

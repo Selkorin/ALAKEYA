@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld('api', {
   tts: (text) => ipcRenderer.invoke('agent:tts', text),
   stt: (bytes, mime) => ipcRenderer.invoke('agent:stt', { bytes, mime }),
 
+  // training data
+  exportTraining: (opts) => ipcRenderer.invoke('agent:export-training', opts),
+
   // queries
   getStatus: () => ipcRenderer.invoke('agent:get-status'),
   getActivity: () => ipcRenderer.invoke('agent:get-activity'),
