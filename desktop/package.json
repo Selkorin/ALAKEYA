@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "concurrently -k -n vite,electron -c cyan,magenta \"npm:dev:renderer\" \"npm:dev:electron\"",
     "dev:renderer": "vite",
-    "dev:electron": "wait-on tcp:5173 && cross-env NODE_ENV=development electron .",
+    "dev:electron": "wait-on tcp:5173 && cross-env NODE_ENV=development electron . --no-sandbox",
     "build": "vite build",
     "preview": "vite preview --port 5174",
     "start": "electron .",
