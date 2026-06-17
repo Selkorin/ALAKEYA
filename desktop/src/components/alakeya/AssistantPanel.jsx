@@ -21,16 +21,21 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Orb from './Orb';
+import {
+  IconOpen, IconSearch, IconSummarize, IconWrite,
+  IconFiles, IconImage, IconTranslate, IconSettings,
+  IconMinus, IconClose,
+} from './Icons';
 
 const QUICK_ACTIONS = [
-  { id: 'open',       label: 'Открыть',     icon: '▦' },
-  { id: 'search',     label: 'Найти',       icon: '⌕' },
-  { id: 'summarize',  label: 'Резюме',      icon: '≡' },
-  { id: 'write',      label: 'Написать',    icon: '✎' },
-  { id: 'organize',   label: 'Файлы',       icon: '⌗' },
-  { id: 'image',      label: 'Картинка',    icon: '◊' },
-  { id: 'translate',  label: 'Перевести',   icon: 'A' },
-  { id: 'settings',   label: 'Настройки',   icon: '⚙' },
+  { id: 'open',       label: 'Открыть',     Icon: IconOpen },
+  { id: 'search',     label: 'Найти',       Icon: IconSearch },
+  { id: 'summarize',  label: 'Резюме',      Icon: IconSummarize },
+  { id: 'write',      label: 'Написать',    Icon: IconWrite },
+  { id: 'organize',   label: 'Файлы',       Icon: IconFiles },
+  { id: 'image',      label: 'Картинка',    Icon: IconImage },
+  { id: 'translate',  label: 'Перевести',   Icon: IconTranslate },
+  { id: 'settings',   label: 'Настройки',   Icon: IconSettings },
 ];
 
 const STATUS_LABEL = {
@@ -84,8 +89,8 @@ export default function AssistantPanel({
             {STATUS_LABEL[orbState]}
           </div>
         </div>
-        <button className="wai-icon-btn" onClick={onClose} aria-label="Minimize">−</button>
-        <button className="wai-icon-btn" onClick={onClose} aria-label="Close">×</button>
+        <button className="wai-icon-btn" onClick={onClose} aria-label="Minimize"><IconMinus /></button>
+        <button className="wai-icon-btn" onClick={onClose} aria-label="Close"><IconClose /></button>
       </header>
 
       {/* Live transcript (only while listening) ─────────── */}
@@ -132,14 +137,14 @@ export default function AssistantPanel({
       {/* Quick actions grid ─────────────────────────────── */}
       <div className="wai-quick-caption">Быстрые действия</div>
       <div className="wai-quick-grid">
-        {QUICK_ACTIONS.map((a) => (
+        {QUICK_ACTIONS.map(({ id, label, Icon }) => (
           <button
-            key={a.id}
+            key={id}
             className="wai-quick-cell"
-            onClick={() => onQuickAction?.(a.id)}
+            onClick={() => onQuickAction?.(id)}
           >
-            <span className="wai-quick-icon">{a.icon}</span>
-            <span className="wai-quick-label">{a.label}</span>
+            <span className="wai-quick-icon"><Icon /></span>
+            <span className="wai-quick-label">{label}</span>
           </button>
         ))}
       </div>

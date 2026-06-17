@@ -24,12 +24,15 @@ function createOrbWindow() {
     y: sh - WIN.height - 16,
     frame: false,
     transparent: true,
+    // Fully transparent backing — the rounded glass panel paints its own
+    // blur via CSS backdrop-filter. (Do NOT set `vibrancy`: it fills the
+    // ENTIRE window with an opaque material, producing a black rectangle
+    // behind the panel.)
+    backgroundColor: '#00000000',
     resizable: false,
     hasShadow: false,
     alwaysOnTop: true,
     skipTaskbar: true,
-    // macOS native blur behind the glass surfaces.
-    ...(process.platform === 'darwin' ? { vibrancy: 'sidebar', visualEffectState: 'active' } : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

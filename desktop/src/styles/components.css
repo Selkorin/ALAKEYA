@@ -33,9 +33,12 @@
                      box-shadow: 0 0 8px var(--wai-accent-bright); }
 .wai-status-error  { background: var(--wai-warning-soft); box-shadow: 0 0 8px var(--wai-warning-soft); }
 .wai-icon-btn      { width: 28px; height: 28px; border-radius: 50%;
+                     display: flex; align-items: center; justify-content: center;
                      background: rgba(255,255,255,0.06);
                      border: 1px solid var(--wai-line);
-                     color: var(--wai-text-dim); cursor: pointer; font-size: 14px; }
+                     color: var(--wai-text-dim); cursor: pointer;
+                     transition: all var(--wai-dur-fast) var(--wai-ease-out); }
+.wai-icon-btn:hover { background: rgba(255,255,255,0.12); color: var(--wai-text); }
 .wai-transcript    { padding: 14px 16px; margin-bottom: 14px;
                      background: var(--wai-accent-soft);
                      border: 1px solid var(--wai-line-accent);
@@ -96,17 +99,23 @@
                      margin-bottom: 12px; }
 .wai-quick-grid    { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .wai-quick-cell    { display: flex; flex-direction: column;
-                     align-items: center; justify-content: center; gap: 6px;
+                     align-items: center; justify-content: center; gap: 7px;
                      aspect-ratio: 1; padding: 8px;
                      background: var(--wai-surface-inset);
                      border: 1px solid var(--wai-line);
                      border-radius: var(--wai-r-lg);
                      color: var(--wai-text); cursor: pointer;
-                     transition: all var(--wai-dur-fast) var(--wai-ease-out); }
+                     transition: transform var(--wai-dur-fast) var(--wai-ease-out),
+                                 background var(--wai-dur-fast) var(--wai-ease-out),
+                                 border-color var(--wai-dur-fast) var(--wai-ease-out); }
 .wai-quick-cell:hover { background: rgba(255,255,255,0.07);
-                        border-color: var(--wai-line-accent); }
-.wai-quick-icon    { font-size: 18px; color: var(--wai-accent-bright); }
-.wai-quick-label   { font-size: 9px; color: var(--wai-text-dim); }
+                        border-color: var(--wai-line-accent);
+                        transform: translateY(-2px); }
+.wai-quick-cell:active { transform: translateY(0) scale(0.96); }
+.wai-quick-icon    { display: flex; align-items: center; justify-content: center;
+                     color: var(--wai-accent-bright);
+                     filter: drop-shadow(0 0 6px var(--wai-accent-glow)); }
+.wai-quick-label   { font-size: 10px; font-weight: 500; color: var(--wai-text-dim); }
 
 /* ── from PermissionCard.jsx ─────────────────────────────────────── */
 .wai-permission-card {
