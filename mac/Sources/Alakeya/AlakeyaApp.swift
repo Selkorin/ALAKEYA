@@ -1,50 +1,72 @@
 import SwiftUI
 import AppKit
 
-// ============================================================
-// AlakeyaApp.swift — @main entry. Builds the agent runtime and shows
-// the floating overlay. Runs as a menu-bar / accessory app (no Dock
-// icon — LSUIElement, set in Info.plist), like a desktop companion.
-// ============================================================
-
 @main
 struct AlakeyaApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     var body: some Scene {
-        // The visible UI lives in the borderless overlay panel created by
-        // AppDelegate; this empty Settings scene keeps SwiftUI's App happy.
-        // Qualified to avoid clashing with our own `Settings` model type.
         SwiftUI.Settings { EmptyView() }
     }
 }
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var controller: OrbWindowController?
-    private var store: AgentStore!
-    private var runner: ToolRunner!
-    private var voice: VoiceController!
+
+    private var statusBar      : StatusBarController!
+    private var orbController  : FloatingOrbWindowController!
+    private var panelController: MainPanelWindowController!
+    private var store          : AgentStore!
+    private var runner         : ToolRunner!
+    private var voice          : VoiceController!
+    private var updateManager  : UpdateManager!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory) // no Dock icon
+        NSApp.setActivationPolicy(.regular)
 
-        store = AgentStore()
+        store  = AgentStore()
         runner = ToolRunner(store: store)
-        voice = VoiceController(store: store, runner: runner)
-
-        // Apply saved accent.
+        ToolRouter.shared.register(LocalFileTools())
+        ToolRouter.shared.register(BrowserTools())
+        ToolRouter.shared.register(ConnectorTools())
+        ToolRouter.shared.register(ResearchTools())
+        ToolRouter.shared.register(DocumentTools())
+        voice  = VoiceController(store: store, runner: runner)
         WAI.accent = Color(hex: store.settings.appearance.accentHex)
 
-        let root = RootView(store: store, runner: runner, voice: voice)
-        let controller = OrbWindowController(rootView: root)
-        controller.show()
-        self.controller = controller
+        updateManager = UpdateManager()
+        updateManager.initialize(settings: store.settings.updates)
 
-        // Ask for microphone up front (DOC2 onboarding step 3).
-        Task { _ = await PermissionsManager.shared.requestMicrophone() }
+        panelController = MainPanelWindowController(
+            store: store, runner: runner, voice: voice, updateManager: updateManager
+        )
+        orbController   = FloatingOrbWindowController(store: store)
+        statusBar = StatusBarController()
+
+        orbController.onOpenPanel = { [weak self] in
+            self?.panelController.toggle()
+        }
+
+        statusBar.onToggleWidget = { [weak self] in
+            self?.orbController.show()
+        }
+
+        statusBar.onOpenSettings = { [weak self] in
+            self?.panelController.openWithSettings()
+        }
+
+        panelController.open()
+        Task { await updateManager.checkOnLaunchIfEnabled() }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        false // stay resident as an overlay companion
+        false
+    }
+
+    func applicationShouldHandleReopen(
+        _ sender: NSApplication,
+        hasVisibleWindows flag: Bool
+    ) -> Bool {
+        panelController.open()
+        return true
     }
 }

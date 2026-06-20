@@ -30,12 +30,28 @@ struct ActivityLogView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
+                // Back button
+                Button(action: onClose) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 12, weight: .medium))
+                        Text("Назад")
+                            .font(.system(size: 13))
+                    }
+                    .foregroundStyle(WAI.accentBright)
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+                tabs
+            }.padding(.bottom, 12)
+
+            HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("ACTIVITY").font(.system(size: 11, weight: .medium)).tracking(2).foregroundStyle(WAI.textMuted)
                     Text("Журнал действий").font(.system(size: 17, weight: .semibold)).foregroundStyle(WAI.text)
                 }
                 Spacer()
-                tabs
             }.padding(.bottom, 18)
 
             if filtered.isEmpty {

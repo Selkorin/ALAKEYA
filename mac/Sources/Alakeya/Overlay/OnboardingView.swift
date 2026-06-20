@@ -12,6 +12,7 @@ struct OnboardingView: View {
     @State private var step = 0
     @State private var accent: UInt32 = 0x06B6D4
     @State private var face = "friendly"
+    @State private var showSkipAlert = false
 
     private let total = 6
 
@@ -28,11 +29,17 @@ struct OnboardingView: View {
         .background(WAI.bg)
         .overlay(RoundedRectangle(cornerRadius: WAI.r2xl).stroke(WAI.lineStrong))
         .clipShape(RoundedRectangle(cornerRadius: WAI.r2xl))
+        .alert("Пропустить онбординг?", isPresented: $showSkipAlert) {
+            Button("Пропустить", role: .destructive) { onSkip() }
+            Button("Продолжить", role: .cancel) { }
+        } message: {
+            Text("Вы сможете пройти его позже в настройках Алакеи.")
+        }
     }
 
     private var header: some View {
         HStack {
-            Text(String(format: "%02d / %02d", step + 1, total)).font(WAI.mono).font(.system(size: 10)).foregroundStyle(WAI.textMuted)
+            Text(String(format: "%02d / %02d", step + 1, total)).font(.system(size: 10, design: .monospaced)).foregroundStyle(WAI.textMuted)
             Spacer()
             HStack(spacing: 4) {
                 ForEach(0..<total, id: \.self) { i in
@@ -41,7 +48,7 @@ struct OnboardingView: View {
                 }
             }
             Spacer()
-            Button { onSkip() } label: { Image(systemName: "xmark").foregroundStyle(WAI.textDim) }.buttonStyle(.plain)
+            Button { showSkipAlert = true } label: { Image(systemName: "xmark").foregroundStyle(WAI.textDim) }.buttonStyle(.plain)
         }
     }
 
@@ -85,7 +92,7 @@ struct OnboardingView: View {
 
     private var safety: some View {
         VStack(spacing: 24) {
-            OrbView(state: .permission, size: 64)
+            OrbView(state: .waitingForConfirmation, size: 64)
             Text("Ты всегда контролируешь").font(.system(size: 28, weight: .semibold)).foregroundStyle(WAI.text)
             Text("Alakeya спрашивает перед отправкой,\nудалением или оплатой. Всегда.")
                 .multilineTextAlignment(.center).foregroundStyle(WAI.textDim)

@@ -15,7 +15,18 @@ let package = Package(
         .executableTarget(
             name: "Alakeya",
             dependencies: ["AXSwift"],
-            path: "Sources/Alakeya"
+            path: "Sources/Alakeya",
+            resources: [
+                .copy("Core/Instructions"),
+                .copy("Core/Skills"),
+                .process("Resources/alakeya_logo.png"),
+                .process("Resources/pers_1.png"),
+            ]
+        ),
+        .testTarget(
+            name: "AlakeyaTests",
+            dependencies: ["Alakeya"],
+            path: "Tests/AlakeyaTests"
         )
     ]
 )

@@ -9,17 +9,21 @@
   <key>CFBundleIdentifier</key>
   <string>com.selkorin.alakeya</string>
   <key>CFBundleShortVersionString</key>
-  <string>0.1.0</string>
+  <string>0.6.0</string>
   <key>CFBundleVersion</key>
-  <string>1</string>
+  <string>6</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
+  <key>NSHumanReadableCopyright</key>
+  <string>© 2026 Selkorin. All rights reserved.</string>
   <key>LSMinimumSystemVersion</key>
   <string>14.0</string>
 
-  <!-- Floating companion: no Dock icon, lives as an accessory app. -->
+  <!-- Regular macOS app: visible in Dock and app switcher. -->
   <key>LSUIElement</key>
-  <true/>
+  <false/>
 
   <!-- TCC usage descriptions (DOC1/DOC2 permission perimeter). -->
   <key>NSMicrophoneUsageDescription</key>
@@ -30,5 +34,7 @@
   <string>Alakeya управляет приложениями через Apple Events по вашему запросу.</string>
   <key>NSAccessibilityUsageDescription</key>
   <string>Alakeya читает и управляет интерфейсом активного окна по вашему запросу.</string>
+  <key>NSScreenCaptureUsageDescription</key>
+  <string>Alakeya делает снимок экрана для контекстного понимания задачи.</string>
 </dict>
 </plist>

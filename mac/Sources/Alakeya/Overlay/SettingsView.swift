@@ -7,59 +7,93 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var store: AgentStore
+    @ObservedObject var updateManager: UpdateManager
     var onClose: () -> Void
 
-    @State private var tab = "appearance"
+    @Binding var tab: String
 
-    private let tabs: [(String, String)] = [
-        ("appearance", "Внешний вид"), ("voice", "Голос"), ("permissions", "Разрешения"),
-        ("automation", "Автоматизация"), ("memory", "Память"), ("developer", "Разработчик"),
-        ("about", "О программе"),
+    private let tabs: [(String, String, String)] = [
+        ("profile", "Профиль", "person.crop.circle"),
+        ("appearance", "Внешний вид", "paintbrush"),
+        ("voice", "Голос", "waveform"),
+        ("models", "Модели и API", "cpu"),
+        ("skills", "Агенты и навыки", "person.2"),
+        ("knowledge", "База знаний", "books.vertical"),
+        ("connectors", "Подключения", "link"),
+        ("permissions", "Разрешения", "lock.shield"),
+        ("automation", "Автоматизация", "clock.arrow.2.circlepath"),
+        ("memory", "Память и данные", "externaldrive"),
+        ("developer", "Разработчик", "terminal"),
+        ("updates", "Обновления", "arrow.triangle.2.circlepath"),
+        ("about", "О программе", "info.circle"),
     ]
 
     var body: some View {
         HStack(spacing: 0) {
             sidebar
-            Divider().overlay(WAI.line)
-            ScrollView { content.padding(28) }.frame(maxWidth: .infinity, alignment: .leading)
+            Rectangle().fill(WAI.line).frame(width: 1)
+            ScrollView {
+                content
+                    .frame(maxWidth: 820, alignment: .topLeading)
+                    .padding(32)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 720, height: 520)
-        .background(WAI.surfaceStrong)
-        .overlay(RoundedRectangle(cornerRadius: WAI.r2xl).stroke(WAI.lineStrong))
-        .clipShape(RoundedRectangle(cornerRadius: WAI.r2xl))
-        .shadow(color: .black.opacity(0.7), radius: 30, y: 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(WAI.canvas)
     }
 
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text("Настройки").font(.system(size: 17, weight: .semibold)).foregroundStyle(WAI.text)
-                Spacer()
-                Button { onClose() } label: { Image(systemName: "xmark").foregroundStyle(WAI.textDim) }.buttonStyle(.plain)
-            }.padding(.bottom, 12)
+            Button(action: onClose) {
+                Label("Назад в ALAKEYA", systemImage: "chevron.left")
+                    .font(.system(size: 12.5, weight: .medium))
+                    .foregroundStyle(WAI.textDim)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 10)
+            .padding(.bottom, 14)
+
+            Text("Центр управления")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(WAI.text)
+                .padding(.horizontal, 10)
+                .padding(.bottom, 10)
+
             ForEach(tabs, id: \.0) { t in
                 Button { tab = t.0 } label: {
-                    Text(t.1).font(.system(size: 13))
+                    Label(t.1, systemImage: t.2)
+                        .font(.system(size: 12.5, weight: tab == t.0 ? .semibold : .regular))
                         .foregroundStyle(tab == t.0 ? WAI.text : WAI.textMuted)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .padding(.horizontal, 10)
+                        .frame(height: 36)
                         .background(tab == t.0 ? WAI.accentSoft : .clear)
-                        .clipShape(RoundedRectangle(cornerRadius: WAI.rMd))
+                        .clipShape(RoundedRectangle(cornerRadius: 9))
                 }.buttonStyle(.plain)
             }
             Spacer()
         }
-        .padding(18).frame(width: 200, alignment: .topLeading)
+        .padding(14)
+        .frame(width: 224, alignment: .topLeading)
+        .background(WAI.sidebar)
     }
 
     @ViewBuilder private var content: some View {
         switch tab {
+        case "profile": ProfileSettingsView(store: store)
         case "appearance": appearance
-        case "voice": voice
+        case "models": ModelsSettingsView(store: store)
+        case "skills": SkillsSettingsView(store: store)
+        case "knowledge": KnowledgeSettingsView()
+        case "connectors": ConnectorsSettingsView()
+        case "voice": VoiceSettingsView(store: store)
         case "permissions": permissions
         case "automation": automation
         case "memory": memory
         case "developer": developer
+        case "updates": UpdatesSettingsView(store: store, manager: updateManager)
         default: about
         }
     }
@@ -79,16 +113,12 @@ struct SettingsView: View {
                     }
                 }
             }
-            row("Размер орба") { picker(["small", "medium", "large"], $store.settings.appearance.size) }
+            row("Размер орба") { picker(["small", "medium", "large"], $store.settings.appearance.size)
+                    .onChange(of: store.settings.appearance.size) { newSize in
+                        let px: CGFloat = newSize == "small" ? 56 : newSize == "large" ? 120 : 72
+                        UserDefaults.standard.set(Double(px), forKey: "alakeya.orb.size")
+                    } }
             row("Тема") { picker(["system", "dark", "light"], $store.settings.appearance.theme) }
-        }
-    }
-
-    private var voice: some View {
-        section("Голос") {
-            row("Активация") { picker(["click", "wake", "push"], $store.settings.voice.activation) }
-            toggleRow("Озвучивать ответы (TTS)", $store.settings.voice.ttsEnabled)
-            toggleRow("Локальная речь (privacy)", $store.settings.voice.localOnly)
         }
     }
 
@@ -113,10 +143,15 @@ struct SettingsView: View {
     }
 
     private var memory: some View {
-        section("Память") {
+        VStack(alignment: .leading, spacing: 24) {
+            MemorySettingsView()
+            Divider().overlay(WAI.line)
             Button("Очистить журнал и правила") {
                 store.activity = []; Store.shared.saveActivity([])
-            }.buttonStyle(.plain).foregroundStyle(WAI.danger)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(WAI.danger)
+            .font(.system(size: 13))
         }
     }
 
@@ -129,8 +164,9 @@ struct SettingsView: View {
     }
 
     private var about: some View {
-        section("О программе") {
-            Text("Alakeya · v0.1 · 2026").foregroundStyle(WAI.text)
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        return section("О программе") {
+            Text("Alakeya · v\(version) · 2026").foregroundStyle(WAI.text)
             Text("Нативный macOS-ассистент. Electron-референс — в /desktop.")
                 .font(.system(size: 12)).foregroundStyle(WAI.textMuted)
         }

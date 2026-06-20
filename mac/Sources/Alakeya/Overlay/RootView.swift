@@ -2,74 +2,90 @@ import SwiftUI
 import AppKit
 
 // ============================================================
-// RootView.swift — composes the overlay (App.jsx equivalent). Shows one
-// primary surface at a time so the auto-sizing window fits its content;
-// the error toast can ride alongside the corner cluster.
+// RootView.swift — routes to the correct surface:
+//   onboarding → settings → activity → permission → chat
 // ============================================================
 
 struct RootView: View {
     @ObservedObject var store: AgentStore
+    @ObservedObject var updateManager: UpdateManager
     let runner: ToolRunner
     let voice: VoiceController
+    var onClosePanel:    (() -> Void)? = nil
+    var onMinimizePanel: (() -> Void)? = nil
+    var onFullscreenPanel: (() -> Void)? = nil
+    var onBrowserToggle: ((Bool) -> Void)? = nil
 
     var body: some View {
         Group {
             if !store.onboarded {
-                OnboardingView(onComplete: { store.completeOnboarding($0) }, onSkip: { store.completeOnboarding(.init()) })
-            } else if store.showSettings {
-                SettingsView(store: store, onClose: { store.showSettings = false })
-            } else if store.showActivity {
-                ActivityLogView(entries: store.activity, onExport: exportCSV, onClose: { store.showActivity = false })
+                OnboardingView(
+                    onComplete: { store.completeOnboarding($0) },
+                    onSkip:     { store.completeOnboarding(.init()) })
             } else if let pending = store.pending {
                 PermissionCardView(
-                    action: pending.action,
-                    onAllowOnce: { runner.resolvePending(.once) },
+                    action:        pending.action,
+                    onAllowOnce:   { runner.resolvePending(.once) },
                     onAlwaysAllow: { runner.resolvePending(.always) },
-                    onCancel: { runner.resolvePending(.deny) })
+                    onCancel:      { runner.resolvePending(.deny) })
             } else {
-                cornerCluster
-            }
-        }
-        .environment(\.colorScheme, .dark)
-    }
-
-    private var cornerCluster: some View {
-        VStack(alignment: .trailing, spacing: 12) {
-            if let err = store.error {
-                ErrorToastView(message: err.message, blocked: err.blocked,
-                               onDismiss: { store.error = nil },
-                               onOpenSettings: { store.error = nil; store.showSettings = true })
-            }
-            if store.panelOpen {
-                AssistantPanelView(
-                    store: store,
-                    onSubmit: { runner.runTask($0) },
+                ChatView(
+                    store:        store,
+                    updateManager: updateManager,
+                    onSubmit:     {
+                        guard let sessionID = store.activeSessionID else { return }
+                        runner.runTask(
+                            $0,
+                            sessionID: sessionID,
+                            agentID: store.settings.models.activeSkillID
+                        )
+                    },
                     onVoiceStart: { voice.start() },
-                    onVoiceStop: { voice.stop() },
-                    onQuick: handleQuick)
-            } else {
-                OrbView(state: store.orbState, size: 72) { store.panelOpen = true }
-                    .padding(8)
+                    onVoiceStop:  { voice.stop() },
+                    onClose:      { onClosePanel?() },
+                    onMinimize:   { onMinimizePanel?() },
+                    onFullscreen: { onFullscreenPanel?() },
+                    onBrowserToggle: { onBrowserToggle?($0) })
             }
         }
-        .padding(16)
-    }
-
-    private func handleQuick(_ id: String) {
-        if id == "settings" { store.showSettings = true; return }
-        let prompts: [String: String] = [
-            "open": "Открой ", "search": "Найди в браузере: ", "summarize": "Что на этом экране?",
-            "write": "Напиши ", "organize": "Открой Finder", "image": "Сгенерируй картинку: ",
-            "translate": "Переведи на английский: ",
-        ]
-        if let p = prompts[id] { runner.runTask(p) }
+        .overlay(alignment: .topTrailing) {
+            if let error = store.error {
+                ErrorToastView(
+                    message: error.message,
+                    blocked: error.blocked,
+                    onDismiss: { store.error = nil },
+                    onOpenSettings: {
+                        store.error = nil
+                        store.showSettings = true
+                    }
+                )
+                .padding(18)
+            }
+        }
+        // Update prompt — shown as a centered modal overlay
+        .overlay {
+            if updateManager.showPrompt, let info = updateManager.pendingUpdate {
+                UpdatePromptView(info: info, manager: updateManager)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                    .animation(.easeOut(duration: 0.2), value: updateManager.showPrompt)
+            }
+        }
+        .preferredColorScheme({
+            switch store.settings.appearance.theme {
+            case "light": return .light
+            case "dark":  return .dark
+            default:      return .dark
+            }
+        }())
     }
 
     private func exportCSV() {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = "alakeya-activity.csv"
-        if panel.runModal() == .OK, let url = panel.url {
-            try? store.exportCSV().data(using: .utf8)?.write(to: url)
+        panel.begin { response in
+            if response == .OK, let url = panel.url {
+                try? store.exportCSV().data(using: .utf8)?.write(to: url)
+            }
         }
     }
 }
