@@ -6,11 +6,11 @@ struct UpdatePromptView: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.55).ignoresSafeArea()
+            Color(hex: 0x000000, alpha: 0.55).ignoresSafeArea()
 
             card
                 .frame(width: 460)
-                .shadow(color: .black.opacity(0.6), radius: 40, y: 20)
+                .shadow(color: Color(hex: 0x000000, alpha: 0.6), radius: 40, y: 20)
         }
     }
 
@@ -20,25 +20,25 @@ struct UpdatePromptView: View {
             HStack(spacing: 14) {
                 Image(systemName: "arrow.down.circle.fill")
                     .font(.system(size: 36))
-                    .foregroundStyle(WAI.accentBright)
+                    .foregroundColor(WAI.accentBright)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Доступна новая версия")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(WAI.text)
+                        .foregroundColor(WAI.text)
                     Text("Alakeya \(info.version)")
                         .font(.system(size: 13))
-                        .foregroundStyle(WAI.textMuted)
+                        .foregroundColor(WAI.textMuted)
                 }
                 Spacer()
                 let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("Текущая: \(current)")
                         .font(.system(size: 11))
-                        .foregroundStyle(WAI.textMuted)
+                        .foregroundColor(WAI.textMuted)
                     Text("Новая: \(info.version)")
                         .font(.system(size: 11))
-                        .foregroundStyle(WAI.accentBright)
+                        .foregroundColor(WAI.accentBright)
                 }
             }
             .padding(20)
@@ -50,7 +50,7 @@ struct UpdatePromptView: View {
                 ScrollView {
                     Text(info.releaseNotes)
                         .font(.system(size: 12))
-                        .foregroundStyle(WAI.textDim)
+                        .foregroundColor(WAI.textDim)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 14)
@@ -67,7 +67,7 @@ struct UpdatePromptView: View {
                         .tint(WAI.accentBright)
                     Text("Загрузка… \(Int(p * 100))%")
                         .font(.system(size: 11))
-                        .foregroundStyle(WAI.textMuted)
+                        .foregroundColor(WAI.textMuted)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 14)
@@ -81,7 +81,7 @@ struct UpdatePromptView: View {
                 } label: {
                     Text("Пропустить версию")
                         .font(.system(size: 12))
-                        .foregroundStyle(WAI.textMuted)
+                        .foregroundColor(WAI.textMuted)
                 }
                 .buttonStyle(.plain)
 
@@ -92,7 +92,7 @@ struct UpdatePromptView: View {
                 } label: {
                     Text("Позже")
                         .font(.system(size: 13))
-                        .foregroundStyle(WAI.textDim)
+                        .foregroundColor(WAI.textDim)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 7)
                         .background(WAI.surface)
@@ -113,7 +113,7 @@ struct UpdatePromptView: View {
                         }
                     }
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white)
+                    .foregroundColor(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 7)
                     .background(WAI.accent)

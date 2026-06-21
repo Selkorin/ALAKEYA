@@ -24,21 +24,21 @@ enum WAI {
     static let sidebar       = Color(hex: 0x0B0D12)
     static let surface       = Color(hex: 0x13161E, alpha: 0.72)
     static let surfaceStrong = Color(hex: 0x13161E, alpha: 0.92)
-    static let surfaceInset  = Color.white.opacity(0.04)
+    static let surfaceInset  = Color(hex: 0xFFFFFF, alpha: 0.04)
     static let canvas        = Color(hex: 0x0F1117)
     static let control       = Color(hex: 0x13161E)
     static let controlHover  = Color(hex: 0x181C26)
 
     // ── Borders — clean white + blue accent ───────────────
-    static let line          = Color.white.opacity(0.07)
-    static let lineStrong    = Color.white.opacity(0.11)
+    static let line          = Color(hex: 0xFFFFFF, alpha: 0.07)
+    static let lineStrong    = Color(hex: 0xFFFFFF, alpha: 0.11)
     static let lineAccent    = Color(hex: 0x1D9BF0, alpha: 0.35)
 
     // ── Text ──────────────────────────────────────────────
-    static let text      = Color.white.opacity(0.94)
-    static let textDim   = Color.white.opacity(0.68)
-    static let textMuted = Color.white.opacity(0.42)
-    static let textFaint = Color.white.opacity(0.26)
+    static let text      = Color(hex: 0xFFFFFF, alpha: 0.94)
+    static let textDim   = Color(hex: 0xFFFFFF, alpha: 0.68)
+    static let textMuted = Color(hex: 0xFFFFFF, alpha: 0.42)
+    static let textFaint = Color(hex: 0xFFFFFF, alpha: 0.26)
 
     // ── Accent — Twitter blue ─────────────────────────────
     static var accent       = Color(hex: 0x1D9BF0) // overridable from settings
