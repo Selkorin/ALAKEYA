@@ -2,8 +2,9 @@ import Foundation
 
 // ============================================================
 // Orchestrator.swift — task → plan (typed tool calls) + spoken reply.
-// Mirrors the documented agent loop. Uses OpenAI (strict tool schemas,
-// DOC2) when OPENAI_API_KEY is set, else a deterministic offline planner.
+// Mirrors the documented agent loop. Uses Claude (Opus) when ANTHROPIC_API_KEY
+// is set, falls back to OpenAI when OPENAI_API_KEY is set, else deterministic
+// offline planner.
 // ============================================================
 
 final class Orchestrator {
@@ -18,6 +19,9 @@ final class Orchestrator {
     ]
 
     func plan(_ text: String) async -> Plan {
+        if ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] != nil {
+            if let p = try? await claudePlan(text) { return p }
+        }
         if ProcessInfo.processInfo.environment["OPENAI_API_KEY"] != nil {
             if let p = try? await openAIPlan(text) { return p }
         }
@@ -86,6 +90,74 @@ final class Orchestrator {
         guard let m = re.firstMatch(in: text, range: range), m.numberOfRanges > 1,
               let r = Range(m.range(at: 1), in: text) else { return nil }
         return text[r].trimmingCharacters(in: .whitespaces)
+    }
+
+    // ── Anthropic/Claude provider ─────────────────────────
+    private func claudePlan(_ text: String) async throws -> Plan {
+        let env = ProcessInfo.processInfo.environment
+        guard let key = env["ANTHROPIC_API_KEY"] else {
+            throw ExecError.failed("ANTHROPIC_API_KEY not set")
+        }
+
+        var req = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(key, forHTTPHeaderField: "x-api-key")
+        req.setValue("2024-06-01", forHTTPHeaderField: "anthropic-version")
+
+        let anthropicTools = Self.toolSchemas.map { schema -> [String: Any] in
+            if let fn = schema["function"] as? [String: Any],
+               let name = fn["name"] as? String,
+               let desc = fn["description"] as? String,
+               let params = fn["parameters"] as? [String: Any] {
+                return [
+                    "name": name,
+                    "description": desc,
+                    "input_schema": params
+                ]
+            }
+            return [:]
+        }.filter { !$0.isEmpty }
+
+        req.httpBody = try JSONSerialization.data(withJSONObject: [
+            "model": "claude-opus-4-8",
+            "max_tokens": 1024,
+            "system": Self.systemPrompt,
+            "tools": anthropicTools,
+            "messages": [
+                ["role": "user", "content": text]
+            ]
+        ])
+
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
+            throw ExecError.failed("Claude HTTP error")
+        }
+
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let content = json?["content"] as? [[String: Any]] else {
+            throw ExecError.failed("Invalid Claude response")
+        }
+
+        var calls: [ToolCall] = []
+        var steps: [TaskStep] = []
+        var reply = "Готово."
+
+        for block in content {
+            if block["type"] as? String == "text",
+               let text = block["text"] as? String {
+                reply = text
+            } else if block["type"] as? String == "tool_use",
+                      let name = block["name"] as? String,
+                      let type = ActionType(rawValue: name),
+                      let input = block["input"] as? [String: Any] {
+                let strArgs = input.mapValues { "\($0)" }
+                calls.append(ToolCall(name: type, args: strArgs))
+                steps.append(TaskStep(label: name))
+            }
+        }
+
+        return Plan(steps: steps, toolCalls: calls, reply: reply)
     }
 
     // ── OpenAI provider (strict tool schemas) ─────────────
