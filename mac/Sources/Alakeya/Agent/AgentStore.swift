@@ -27,6 +27,7 @@ final class AgentStore: ObservableObject {
     @Published var status: AgentStatusLabel = .ready
     @Published var panelOpen = false
     @Published var transcript = ""
+    @Published var voiceListening = false
     @Published var task: CurrentTask?
     @Published var pending: PendingApproval?
     @Published var pendingLocalBusinessQuery: LocalBusinessQuery?
@@ -36,6 +37,7 @@ final class AgentStore: ObservableObject {
     @Published var showActivity = false
     @Published var settings = Settings.load()
     @Published var onboarded = UserDefaults.standard.bool(forKey: "alakeya.onboarded")
+    @Published var toolStatus: String?
 
     // Active chat messages — source of truth for the visible conversation.
     @Published var messages: [ChatMessage] = []
@@ -66,14 +68,29 @@ final class AgentStore: ObservableObject {
                 sessions.append(launchSession)
                 Store.shared.saveSessions(sessions)
             }
-            activeSessionID = launchSession.id
-            messages = launchSession.messages.isEmpty ? [.greeting] : launchSession.messages
+
+            // Use the most recently updated session, whether empty or not
+            let mostRecentSession = sessions.max(by: { $0.updatedAt < $1.updatedAt })
+
+            if let recentSession = mostRecentSession {
+                activeSessionID = recentSession.id
+                // If empty, show greeting, otherwise show actual messages
+                messages = recentSession.messages.isEmpty ? [.greeting] : recentSession.messages
+            } else {
+                activeSessionID = launchSession.id
+                messages = [.greeting]
+            }
             activateAgent("general")
         }
     }
 
     // ── mutations used by the agent runtime ───────────────
     func setStatus(_ s: AgentStatusLabel) { status = s }
+
+    func setToolStatus(_ text: String?) {
+        let clean = text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        toolStatus = clean.isEmpty ? nil : clean
+    }
 
     func log(_ entry: ActivityEntry) {
         activity.append(entry)

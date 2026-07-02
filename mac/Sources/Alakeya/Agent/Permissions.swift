@@ -24,12 +24,21 @@ final class PolicyEngine {
 
     /// HANDOFF §6.3 — hard limits always ask; safe browser actions always pass;
     /// remembered rules auto-pass; in auto mode low risk auto-confirms.
+    @MainActor
     func shouldAutoConfirm(_ action: Action) -> Bool {
         // ── Hard limits: always require confirmation ──────────
         switch action.type {
         case .sendEmail, .deleteFile, .makePayment, .browserSubmit,
-             .browserClearCookies, .browserClearCache, .connectorSend:
+             .browserClearCookies, .browserClearCache:
             logDecision(action, auto: false, reason: "hard limit — always confirm")
+            return false
+        case .connectorSend:
+            if action.args["tool_name"] == "telegram_publish_post",
+               isSelectedSocialTarget(action) {
+                logDecision(action, auto: true, reason: "selected social publishing target")
+                return true
+            }
+            logDecision(action, auto: false, reason: "connector send requires confirmation")
             return false
         default:
             break
@@ -46,10 +55,25 @@ final class PolicyEngine {
 
         // ── Research extraction: always auto-confirm (read-only) ─────
         switch action.type {
-        case .researchPlan, .extractSearchResults, .extractBusinessCards,
+        case .searchInternet, .researchPlan, .extractSearchResults, .extractBusinessCards,
              .extractHotelCards, .extractContactCards, .extractArticle,
-             .qualityScoreResults:
+             .qualityScoreResults, .browserAgentExtract, .browserAgentSearch,
+             .browserUseExtract, .browserUseSearch, .browserUseScreenshot,
+             .browserUseSessionCreate, .browserUseSessionClose:
             logDecision(action, auto: true, reason: "research read-only extraction")
+            return true
+        default:
+            break
+        }
+
+        // ── Computer-use session actions: auto-confirm after macOS TCC permissions ──
+        // These are the small repeated steps inside an explicit "управляй компьютером"
+        // task. Asking on every mouse/key/screenshot action makes autonomous work unusable.
+        switch action.type {
+        case .computerScreenshot, .computerWait, .computerMouseMove, .computerClick,
+             .computerDoubleClick, .computerRightClick, .computerDrag,
+             .computerScroll, .computerType, .computerKey:
+            logDecision(action, auto: true, reason: "computer-use step")
             return true
         default:
             break
@@ -125,6 +149,17 @@ final class PolicyEngine {
             "pin", "пин",
         ]
         return sensitive.contains { field.contains($0) }
+    }
+
+    @MainActor
+    private func isSelectedSocialTarget(_ action: Action) -> Bool {
+        let channel = SocialPublishingTargetStore.normalizedDestination(
+            connectorID: "telegram",
+            destination: action.args["channel"] ?? action.target
+        )
+        return SocialPublishingTargetStore.shared.selectedTargets().contains {
+            $0.connectorID == "telegram" && $0.destination.lowercased() == channel.lowercased()
+        }
     }
 
     private func logDecision(_ action: Action, auto: Bool, reason: String) {

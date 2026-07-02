@@ -229,12 +229,18 @@ struct DesignWorkspaceView: View {
 
     private var emptyState: some View {
         VStack(spacing: 12) {
-            OrbView(
-                state: isWorking ? .generating : .idle,
-                size: 82,
-                showsStatus: isWorking
-            )
-            .frame(width: 130, height: isWorking ? 150 : 120)
+            if isWorking {
+                ImageGenerationWaveView()
+                    .frame(width: 480, height: 300)
+                    .padding(.bottom, 4)
+            } else {
+                OrbView(
+                    state: .idle,
+                    size: 82,
+                    showsStatus: false
+                )
+                .frame(width: 130, height: 120)
+            }
 
             if !isWorking {
                 Text("Результат появится здесь")
@@ -569,5 +575,64 @@ struct DesignWorkspaceView: View {
             if let url { DispatchQueue.main.async { select(url) } }
         }
         return true
+    }
+}
+
+private struct ImageGenerationWaveView: View {
+    private let columns = 18
+    private let rows = 12
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 30)) { context in
+            waveContent(time: context.date.timeIntervalSinceReferenceDate)
+        }
+    }
+
+    private func waveContent(time: TimeInterval) -> some View {
+        VStack(spacing: 8) {
+            Text("Генерирую изображение")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(WAI.text)
+            Text("Собираю композицию, свет и детали…")
+                .font(.system(size: 12.5))
+                .foregroundStyle(WAI.textMuted)
+            waveCanvas(time: time)
+        }
+    }
+
+    private func waveCanvas(time: TimeInterval) -> some View {
+        Canvas { canvas, size in
+            drawDots(canvas: &canvas, size: size, time: time)
+        }
+        .frame(height: 210)
+        .padding(24)
+        .background(waveBackground)
+    }
+
+    private var waveBackground: some View {
+        RoundedRectangle(cornerRadius: 28, style: .continuous)
+            .fill(Color(hex: 0x101722))
+            .overlay(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(WAI.accentBright.opacity(0.16), lineWidth: 1)
+            )
+    }
+
+    private func drawDots(canvas: inout GraphicsContext, size: CGSize, time: TimeInterval) {
+        let stepX = size.width / CGFloat(columns - 1)
+        let stepY = size.height / CGFloat(rows - 1)
+        for row in 0..<rows {
+            for column in 0..<columns {
+                let x = CGFloat(column) * stepX
+                let y = CGFloat(row) * stepY
+                let wave = sin(time * 3.2 + Double(column) * 0.48 + Double(row) * 0.34)
+                let diagonal = sin(time * 2.0 - Double(column + row) * 0.22)
+                let intensity = max(0, (wave + diagonal) * 0.5)
+                let radius = 1.4 + CGFloat(intensity) * 2.4
+                let opacity = 0.18 + CGFloat(intensity) * 0.58
+                let rect = CGRect(x: x - radius, y: y - radius, width: radius * 2, height: radius * 2)
+                canvas.fill(Path(ellipseIn: rect), with: .color(WAI.accentBright.opacity(opacity)))
+            }
+        }
     }
 }

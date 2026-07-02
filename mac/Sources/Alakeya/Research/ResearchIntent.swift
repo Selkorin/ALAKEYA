@@ -59,71 +59,94 @@ enum ResearchIntent: String, CaseIterable {
     static func detect(from query: String) -> ResearchIntent {
         let lower = query.lowercased()
 
-        // Export task first
+        // Export task first (highest priority)
         if matches(lower, patterns: ["выгрузи", "экспорт", "сохрани.*pdf", "сделай.*word", "сделай.*docx",
-                                      "сделай.*excel", "xlsx", "export.*pdf", "export.*csv", "в pdf", "в docx"]) {
+                                      "сделай.*excel", "xlsx", "export.*pdf", "export.*csv", "в pdf", "в docx",
+                                      "в csv", "в excel", "download", "сохранить.*файл"]) {
             return .exportTask
         }
 
-        // SEO
+        // SEO/Technical audit
         if matches(lower, patterns: ["seo", "сео", "аудит.*сайт", "аудит.*страниц", "title.*description",
-                                      "мета.{0,5}тег", "h1 сайт", "оптимизаци"]) {
+                                      "мета.{0,5}тег", "h1 сайт", "оптимизаци", "технический.*анализ",
+                                      "robots\\.txt", "sitemap", "canonical", "structured data"]) {
             return .seoResearch
         }
 
-        // Hotels/travel
-        if matches(lower, patterns: ["отел", "гостиниц", "санатори", "resort", "hotel",
-                                      "куда поехать", "тур.*кур", "путешеств"]) {
-            return lower.contains("топ") || lower.contains("лучш") || lower.contains("рейтинг")
+        // Hotels/travel with enhanced detection
+        if matches(lower, patterns: ["отел", "гостиниц", "санатори", "resort", "hotel", "hostel",
+                                      "куда поехать", "тур.*кур", "путешеств", "тур", "экскурс",
+                                      "проживан", "размещен"]) {
+            return (lower.contains("топ") || lower.contains("лучш") || lower.contains("рейтинг") ||
+                   lower.contains("сравн") || lower.contains("выб"))
                 ? .hotelResearch : .travelResearch
         }
 
-        // Local business + contacts
-        if matches(lower, patterns: ["салон", "кафе", "ресторан", "парикмахер", "стоматолог",
-                                      "клиник", "автосервис", "магазин", "компани"]) {
-            return matches(lower, patterns: ["контакт", "телефон", "адрес", "email", "сайт"])
+        // Enhanced business detection with categories
+        let businessPatterns = [
+            "салон", "кафе", "ресторан", "парикмахер", "стоматолог", "клиник", "автосервис",
+            "магазин", "компани", "фирм", "предприят", "организ", "барбершоп", "спа", "фитнес",
+            "трениров", "сервис", "ремонт", "услуг", "аптек", "банк", "страх"
+        ]
+
+        let hasBusinessTerm = businessPatterns.contains { lower.contains($0) }
+
+        if hasBusinessTerm {
+            return matches(lower, patterns: ["контакт", "телефон", "адрес", "email", "сайт",
+                                              "работ", "час", "расписан"])
                 ? .contactResearch : .localBusinessSearch
         }
 
         // Contact research explicit
         if matches(lower, patterns: ["найди.*контакт", "собери.*контакт", "контакты.*организ",
-                                      "телефон.*компани", "email.*компани", "контактн"]) {
+                                      "телефон.*компани", "email.*компани", "контактн",
+                                      "почт.*адрес", "связ"]) {
             return .contactResearch
         }
 
-        // Social/people
+        // Social/people research
         if matches(lower, patterns: ["вконтакте", "инстаграм", "профил", "страниц.*пользовател",
-                                      "соцсет", "найди.*человек", "информаци.*person"]) {
+                                      "соцсет", "найди.*человек", "информаци.*person", "biograph",
+                                      "личност", "публичн.*человек"]) {
             return .socialProfileResearch
         }
 
-        // Top list
+        // Enhanced top list detection
         if matches(lower, patterns: ["топ \\d", "топ-\\d", "лучш", "рейтинг", "топ.*компани",
-                                      "список.*лучш", "сравни.*вариант"]) {
+                                      "список.*лучш", "сравни.*вариант", "выб", "recommend",
+                                      "критер", "что лучше"]) {
             return .topList
         }
 
-        // Table/data
+        // Table/data research
         if matches(lower, patterns: ["таблиц", "csv", "xlsx", "spreadsheet", "собери.*данн",
-                                      "составь.*список"]) {
+                                      "составь.*список", "выгруз.*данн", "собер.*информ"]) {
             return .tableResearch
         }
 
-        // Academic/fact
+        // Academic/fact checking
         if matches(lower, patterns: ["исследован", "научн", "стать", "публикаци", "источник",
-                                      "докажи", "подтверди", "проверь.*факт"]) {
+                                      "докажи", "подтверди", "проверь.*факт", "верн.*ли",
+                                      "эксперимент", "статистик", "данн.*подтвержд"]) {
             return .academicResearch
         }
 
-        // Current info
+        // Current/time-sensitive info
         if matches(lower, patterns: ["сейчас", "сегодня", "\\d{4}.*год", "актуальн", "последн.*новост",
-                                      "последние данн", "свежий"]) {
+                                      "последние данн", "свежий", "новост", "текущ", "сегодн"]) {
             return .currentInfo
         }
 
-        // Client research
-        if matches(lower, patterns: ["клиент", "потенциальн", "лид", "lead", "база.*клиент"]) {
+        // Client/lead research
+        if matches(lower, patterns: ["клиент", "потенциальн", "лид", "lead", "база.*клиент",
+                                      "целев.*аудитор", "покупател"]) {
             return .clientResearch
+        }
+
+        // Product research
+        if matches(lower, patterns: ["покупк", "куп", "цен", "магазин", "характерист",
+                                      "обзор.*товар", "сравн.*товар", "выб.*товар"]) {
+            return .productResearch
         }
 
         return .general

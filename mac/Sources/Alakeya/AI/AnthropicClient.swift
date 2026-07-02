@@ -59,7 +59,20 @@ final class AnthropicClient: AIProviderClient {
             throw AIClientError.invalidResponse
         }
         let toolResultBlocks: [[String: Any]] = results.map { r in
-            ["type": "tool_result", "tool_use_id": r.callID, "content": r.output]
+            var content: [[String: Any]] = [
+                ["type": "text", "text": r.output]
+            ]
+            if let image = r.imageBase64JPEG, !image.isEmpty {
+                content.append([
+                    "type": "image",
+                    "source": [
+                        "type": "base64",
+                        "media_type": "image/jpeg",
+                        "data": image,
+                    ],
+                ])
+            }
+            return ["type": "tool_result", "tool_use_id": r.callID, "content": content]
         }
         messages.append(["role": "user", "content": toolResultBlocks])
         let anthropicTools = tools.compactMap(Self.toAnthropicTool)
@@ -166,4 +179,3 @@ final class AnthropicClient: AIProviderClient {
         return text
     }
 }
-

@@ -21,11 +21,11 @@ private final class TransparentHostingView<Content: View>: NSHostingView<Content
 
 private let kOrbPositionKey = "alakeya.orb.position"
 private let kOrbSizeKey = "alakeya.orb.size"
-private let kOrbDefaultSize: CGFloat = 72
-private let kOrbMinSize: CGFloat = 56
-private let kOrbMaxSize: CGFloat = 160
+private let kOrbDefaultSize: CGFloat = 104
+private let kOrbMinSize: CGFloat = 72
+private let kOrbMaxSize: CGFloat = 190
 private let kOrbSafeInset: CGFloat = 120
-private let kOrbVisualScale: CGFloat = 0.5
+private let kOrbVisualScale: CGFloat = 1.0
 private let kOrbMinimumVisible: CGFloat = 12
 
 @MainActor
@@ -55,8 +55,7 @@ final class FloatingOrbWindowController: NSObject, NSWindowDelegate {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 let saved = UserDefaults.standard.double(forKey: kOrbSizeKey)
-                guard saved >= Double(kOrbMinSize), saved <= Double(kOrbMaxSize) else { return }
-                let newSize = CGFloat(saved)
+                let newSize = Self.normalizedOrbSize(saved)
                 guard abs(self.model.size - newSize) > 1 else { return }
                 self.model.size = newSize
             }
@@ -112,8 +111,8 @@ final class FloatingOrbWindowController: NSObject, NSWindowDelegate {
 
     private func panelSize() -> NSSize {
         return NSSize(
-            width: orbSize + 140,
-            height: orbSize + 160
+            width: orbSize + 176,
+            height: orbSize + 108
         )
     }
 
@@ -132,10 +131,22 @@ final class FloatingOrbWindowController: NSObject, NSWindowDelegate {
 
     private static func loadOrbSize() -> CGFloat {
         let saved = UserDefaults.standard.double(forKey: kOrbSizeKey)
+        let normalized = normalizedOrbSize(saved)
+        if normalized != CGFloat(saved) {
+            UserDefaults.standard.set(Double(normalized), forKey: kOrbSizeKey)
+        }
+        return normalized
+    }
+
+    private static func normalizedOrbSize(_ saved: Double) -> CGFloat {
         guard saved > 0 else { return kOrbDefaultSize }
 
+        // Migrate the oversized default that was briefly shipped.
+        if saved >= 116, saved <= 122 {
+            return kOrbDefaultSize
+        }
+
         if saved < kOrbMinSize || saved > kOrbMaxSize {
-            UserDefaults.standard.set(Double(kOrbDefaultSize), forKey: kOrbSizeKey)
             return kOrbDefaultSize
         }
 

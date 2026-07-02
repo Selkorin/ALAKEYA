@@ -1,10 +1,8 @@
 import Foundation
-import ScreenCaptureKit
 import CoreGraphics
 
 // ============================================================
-// ScreenReader.swift — ScreenCaptureKit grounding for visual
-// verification / VLM fallback (DOC1 §"Screen Recording + grounding").
+// ScreenReader.swift — CoreGraphics grounding for visual verification / VLM fallback.
 // Requires the Screen Recording TCC permission.
 // ============================================================
 
@@ -13,18 +11,11 @@ final class ScreenReader {
 
     /// Capture the main display as a CGImage for verification or a VLM pass.
     func captureMainDisplay() async throws -> CGImage {
-        let content = try await SCShareableContent.excludingDesktopWindows(false,
-                                                                           onScreenWindowsOnly: true)
-        guard let display = content.displays.first else {
-            throw NSError(domain: "Alakeya.ScreenReader", code: 1,
-                          userInfo: [NSLocalizedDescriptionKey: "Нет доступного дисплея"])
+        guard let image = CGDisplayCreateImage(CGMainDisplayID()) else {
+            throw NSError(domain: "Alakeya.ScreenReader", code: 2,
+                          userInfo: [NSLocalizedDescriptionKey: "Не удалось сделать снимок основного дисплея. Если доступ уже включён, выключите и снова включите Alakeya в Запись экрана, затем перезапустите приложение."])
         }
-        let filter = SCContentFilter(display: display, excludingWindows: [])
-        let config = SCStreamConfiguration()
-        config.width = display.width
-        config.height = display.height
-        return try await SCScreenshotManager.captureImage(contentFilter: filter,
-                                                          configuration: config)
+        return image
     }
 
     /// Lightweight description hook — point a VLM here in production.

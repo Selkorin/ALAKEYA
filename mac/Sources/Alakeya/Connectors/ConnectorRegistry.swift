@@ -1,9 +1,10 @@
 import Foundation
+import AppKit
 import SwiftUI
 
 // ============================================================
 // ConnectorRegistry.swift — singleton that owns all connectors
-// and their connection state. Real OAuth/API flows are TODO.
+// and their connection state.
 // ============================================================
 
 @MainActor
@@ -31,16 +32,63 @@ final class ConnectorRegistry: ObservableObject {
         connectors.contains { $0.isEnabled }
     }
 
-    // MARK: - Connection actions (stubs — real OAuth TODO)
+    // MARK: - Connection actions
 
     func connect(connectorID: String) {
+        guard let connector = connectors.first(where: { $0.id == connectorID }) else { return }
+        switch connector.authType {
+        case .none:
+            setConnected(connectorID: connectorID, connectedEmail: "Локально")
+        case .apiKey:
+            connectWithAPIKey(connector: connector)
+        case .oauth2:
+            connectWithOAuth(connector: connector)
+        }
+    }
+
+    func connectWithAPIKey(connector: Connector) {
+        guard let token = Self.promptSecret(
+            title: "Подключить \(connector.title)",
+            message: connector.id == "telegram"
+                ? "Вставьте Telegram Bot Token. Бот должен быть администратором канала, куда нужно публиковать."
+                : "Вставьте API key для \(connector.title)."
+        ) else { return }
+        auth.saveToken(token, for: connector.id)
+        setConnected(
+            connectorID: connector.id,
+            connectedEmail: connector.id == "telegram" ? "Bot API" : "API key"
+        )
+    }
+
+    func connectWithOAuth(connector: Connector) {
+        let clientID = oauthClientID(for: connector.id)
+        guard clientID != nil else {
+            let state = ConnectorConnectionState(
+                connectorID: connector.id,
+                status: .needsAuth,
+                connectedEmail: nil,
+                errorMessage: """
+                Для \(connector.title) нужен OAuth client id, настроенный разработчиком приложения. \
+                Пользователь не должен вводить секреты вручную. Добавьте client id в UserDefaults или окружение, \
+                затем повторите подключение.
+                """
+            )
+            states[connector.id] = state
+            auth.saveState(state)
+            objectWillChange.send()
+            return
+        }
+
+        // Full OAuth callback exchange is implemented in the next runtime layer.
+        // Until the app has provider client IDs and redirect handling wired in,
+        // keep the state explicit and non-stub so the UI explains the blocker.
         let state = ConnectorConnectionState(
-            connectorID: connectorID,
+            connectorID: connector.id,
             status: .needsAuth,
             connectedEmail: nil,
-            errorMessage: "OAuth2 не настроен. Добавьте client ID и secret в настройках. (TODO)"
+            errorMessage: "OAuth для \(connector.title) ожидает callback alakeya://oauth/callback. Client id найден, нужен обмен authorization code на token."
         )
-        states[connectorID] = state
+        states[connector.id] = state
         auth.saveState(state)
         objectWillChange.send()
     }
@@ -53,8 +101,71 @@ final class ConnectorRegistry: ObservableObject {
     }
 
     func testConnection(connectorID: String) async -> String {
-        // TODO: implement real connectivity check
-        return "Тест соединения (stub). Реальная проверка: TODO."
+        guard let connector = connectors.first(where: { $0.id == connectorID }) else {
+            return "Коннектор не найден."
+        }
+        switch connector.authType {
+        case .none:
+            return "Локальный коннектор доступен."
+        case .apiKey:
+            return auth.hasToken(for: connectorID)
+                ? "\(connector.title): ключ сохранён в Keychain."
+                : "\(connector.title): ключ не найден."
+        case .oauth2:
+            return auth.hasToken(for: connectorID)
+                ? "\(connector.title): токен сохранён в Keychain."
+                : "\(connector.title): OAuth токен не найден."
+        }
+    }
+
+    private func setConnected(connectorID: String, connectedEmail: String?) {
+        let state = ConnectorConnectionState(
+            connectorID: connectorID,
+            status: .connected,
+            connectedEmail: connectedEmail,
+            errorMessage: nil,
+            lastConnected: Date()
+        )
+        states[connectorID] = state
+        auth.saveState(state)
+        objectWillChange.send()
+    }
+
+    private func oauthClientID(for connectorID: String) -> String? {
+        let key: String
+        switch connectorID {
+        case "vk": key = "alakeya.oauth.vk.client_id"
+        case "instagram": key = "alakeya.oauth.meta.client_id"
+        default:
+            if connectorID.hasPrefix("google_") || connectorID == "gmail" {
+                key = "alakeya.oauth.google.client_id"
+            } else {
+                key = "alakeya.oauth.\(connectorID).client_id"
+            }
+        }
+        if let value = UserDefaults.standard.string(forKey: key), !value.isEmpty { return value }
+        let envKey = key
+            .replacingOccurrences(of: "alakeya.oauth.", with: "ALAKEYA_OAUTH_")
+            .replacingOccurrences(of: ".client_id", with: "_CLIENT_ID")
+            .replacingOccurrences(of: ".", with: "_")
+            .uppercased()
+        return ProcessInfo.processInfo.environment[envKey]
+    }
+
+    private static func promptSecret(title: String, message: String) -> String? {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = .informational
+        let input = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 360, height: 24))
+        input.placeholderString = "token"
+        alert.accessoryView = input
+        alert.addButton(withTitle: "Подключить")
+        alert.addButton(withTitle: "Отмена")
+        let response = alert.runModal()
+        guard response == .alertFirstButtonReturn else { return nil }
+        let value = input.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
     }
 
     // MARK: - System prompt snippet

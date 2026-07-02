@@ -3,6 +3,43 @@ import SwiftUI
 import WebKit
 
 @MainActor
+final class BrowserTrustPolicy {
+    static let macSafariUserAgent =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
+    static let acceptLanguage = "ru-RU,ru;q=0.9,en-US;q=0.7,en;q=0.6"
+
+    private var lastNavigationByHost: [String: Date] = [:]
+    private var lastScrollAt: Date = .distantPast
+
+    func waitBeforeNavigation(to url: URL) async {
+        guard let host = url.host?.lowercased() else { return }
+        let now = Date()
+        let minimumGap: TimeInterval = isSensitiveSearchHost(host) ? 8.0 : 2.0
+        if let last = lastNavigationByHost[host] {
+            let remaining = minimumGap - now.timeIntervalSince(last)
+            if remaining > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
+            }
+        }
+        lastNavigationByHost[host] = Date()
+    }
+
+    func waitBeforeScroll(on url: URL?) async throws {
+        let host = url?.host?.lowercased() ?? ""
+        let minimumGap: TimeInterval = isSensitiveSearchHost(host) ? 3.0 : 1.25
+        let remaining = minimumGap - Date().timeIntervalSince(lastScrollAt)
+        if remaining > 0 {
+            try await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
+        }
+        lastScrollAt = Date()
+    }
+
+    private func isSensitiveSearchHost(_ host: String) -> Bool {
+        host.contains("google.") || host.contains("yandex.") || host.contains("ya.ru")
+    }
+}
+
+@MainActor
 final class BrowserStore: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate {
     @Published var address = "https://www.google.com"
     @Published var title = "Браузер"
@@ -16,21 +53,20 @@ final class BrowserStore: NSObject, ObservableObject, WKNavigationDelegate, WKUI
     @Published var lastAnnotatedScreenshot: NSImage? = nil
 
     let webView: WKWebView
+    private let trustPolicy = BrowserTrustPolicy()
 
     override init() {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .default()
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
-        // Desktop content mode: sites render full desktop layout, not mobile
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
-        configuration.defaultWebpagePreferences.preferredContentMode = .desktop
+        configuration.defaultWebpagePreferences.preferredContentMode = .recommended
         webView = WKWebView(frame: .zero, configuration: configuration)
         super.init()
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.allowsMagnification = true
-        // Desktop Safari UA — prevents sites from serving mobile/legacy fallback pages
-        webView.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
+        webView.customUserAgent = BrowserTrustPolicy.macSafariUserAgent
         // Dark appearance via native WebKit — signals prefers-color-scheme: dark
         // without overriding sites' own dark mode implementations
         webView.appearance = NSAppearance(named: .darkAqua)
@@ -40,7 +76,14 @@ final class BrowserStore: NSObject, ObservableObject, WKNavigationDelegate, WKUI
     func navigate(_ value: String) {
         let target = Self.normalizedURL(value)
         address = target.absoluteString
-        webView.load(URLRequest(url: target))
+        Task { [weak self] in
+            guard let self else { return }
+            await trustPolicy.waitBeforeNavigation(to: target)
+            var request = URLRequest(url: target)
+            request.setValue(BrowserTrustPolicy.acceptLanguage, forHTTPHeaderField: "Accept-Language")
+            request.setValue("1", forHTTPHeaderField: "DNT")
+            webView.load(request)
+        }
     }
 
     func goBack() {
@@ -307,6 +350,7 @@ final class BrowserStore: NSObject, ObservableObject, WKNavigationDelegate, WKUI
     }
 
     func scrollResultsContainer() async throws -> String {
+        try await trustPolicy.waitBeforeScroll(on: webView.url)
         let script = """
         (() => {
           const candidates = Array.from(document.querySelectorAll(
@@ -658,6 +702,51 @@ final class BrowserStore: NSObject, ObservableObject, WKNavigationDelegate, WKUI
             .appendingPathComponent("alakeya-browser-\(UUID().uuidString).png")
         try png.write(to: url)
         return #"{"ok":true,"path":"\#(url.path)"}"#
+    }
+
+    func prepareManualVerificationAccessibilityMode() async throws -> String {
+        setZoom(1.35)
+        let script = """
+        (() => {
+          const text = (document.body?.innerText || '').toLocaleLowerCase();
+          const candidates = Array.from(document.querySelectorAll(
+            'iframe,form,[id*="captcha" i],[class*="captcha" i],[id*="challenge" i],[class*="challenge" i],main,body'
+          ));
+          const target = candidates.find(el => {
+            const value = String(el.innerText || el.getAttribute('title') || el.getAttribute('aria-label') || '').toLocaleLowerCase();
+            return value.includes('captcha') || value.includes('капч') ||
+              value.includes('не робот') || value.includes('not a robot') ||
+              value.includes('подтвердите') || value.includes('verify');
+          }) || candidates[0] || document.body;
+          if (target && target.scrollIntoView) target.scrollIntoView({block:'center', inline:'center'});
+          if (target && target.style) {
+            target.style.outline = '4px solid #fbbf24';
+            target.style.outlineOffset = '6px';
+            target.style.borderRadius = '8px';
+          }
+          let banner = document.getElementById('alakeya-manual-verification-banner');
+          if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'alakeya-manual-verification-banner';
+            banner.textContent = 'ALAKEYA: пройдите проверку вручную. Я подожду и продолжу в этой же сессии.';
+            banner.style.cssText = [
+              'position:fixed','left:18px','right:18px','bottom:18px','z-index:2147483647',
+              'padding:14px 16px','background:#111827','color:#fff','border:2px solid #fbbf24',
+              'border-radius:10px','font:16px -apple-system,BlinkMacSystemFont,system-ui,sans-serif',
+              'box-shadow:0 12px 36px rgba(0,0,0,.35)'
+            ].join(';');
+            document.documentElement.appendChild(banner);
+          }
+          return JSON.stringify({
+            ok:true,
+            url:location.href,
+            title:document.title,
+            challengeTextDetected:text.includes('captcha') || text.includes('капч') ||
+              text.includes('не робот') || text.includes('подтвердите') || text.includes('verify')
+          });
+        })()
+        """
+        return (try await evaluate(script) as? String) ?? #"{"ok":true}"#
     }
 
     // MARK: - Research extraction methods
@@ -1127,7 +1216,24 @@ struct BrowserPaneView: View {
     // ── Toolbar ──────────────────────────────────────────────────
 
     private var toolbar: some View {
-        HStack(spacing: 7) {
+        GeometryReader { geo in
+            browserToolbar(compact: geo.size.width < 500)
+        }
+        .frame(height: 48)
+        .background(
+            LinearGradient(
+                colors: [Color(hex: 0x12111E), Color(hex: 0x090910)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(WAI.line).frame(height: 1)
+        }
+    }
+
+    private func browserToolbar(compact: Bool) -> some View {
+        HStack(spacing: compact ? 5 : 7) {
             // Navigation
             navBtn("chevron.left", on: store.canGoBack) { store.goBack() }
             navBtn("chevron.right", on: store.canGoForward) { store.goForward() }
@@ -1151,69 +1257,78 @@ struct BrowserPaneView: View {
                         )
                 )
                 .onSubmit { store.navigate(store.address) }
+                .frame(minWidth: compact ? 92 : 150)
+                .layoutPriority(1)
 
             // Status pill
-            HStack(spacing: 5) {
+            if compact {
                 Circle()
                     .fill(store.isLoading ? WAI.accentBright : WAI.success)
-                    .frame(width: 5, height: 5)
+                    .frame(width: 6, height: 6)
+                    .padding(.horizontal, 2)
                     .animation(.easeInOut(duration: 0.3), value: store.isLoading)
-                Text(store.isLoading ? "Загрузка" : "Готово")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(WAI.textFaint)
+            } else {
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(store.isLoading ? WAI.accentBright : WAI.success)
+                        .frame(width: 5, height: 5)
+                        .animation(.easeInOut(duration: 0.3), value: store.isLoading)
+                    Text(store.isLoading ? "Загрузка" : "Готово")
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .foregroundStyle(WAI.textFaint)
+                }
+                .frame(width: 74, alignment: .trailing)
             }
-            .frame(width: 74, alignment: .trailing)
 
             // Screenshot
             toolBtn(screenshotCopied ? "checkmark" : "camera", accent: screenshotCopied) {
-                Task {
-                    do {
-                        _ = try await store.takeScreenshotAndCopy()
-                        screenshotToast = "Скриншот скопирован — вставьте через ⌘V"
-                        screenshotCopied = true
-                    } catch {
-                        screenshotToast = error.localizedDescription
-                        screenshotCopied = false
-                    }
-                    try? await Task.sleep(nanoseconds: 1_800_000_000)
-                    screenshotCopied = false
-                    screenshotToast = ""
-                }
+                captureScreenshot()
             }
             .help("Скриншот → буфер обмена (⌘V в чат)")
 
             // Annotate
-            toolBtn("pencil.and.outline", accent: showAnnotation) {
-                Task {
-                    do {
-                        _ = try await store.takeScreenshotAndCopy()
-                        showAnnotation = true
-                    } catch {
-                        screenshotToast = error.localizedDescription
-                        try? await Task.sleep(nanoseconds: 1_800_000_000)
-                        screenshotToast = ""
-                    }
+            if !compact {
+                toolBtn("pencil.and.outline", accent: showAnnotation) {
+                    annotateScreenshot()
                 }
+                .help("Аннотировать скриншот")
             }
-            .help("Аннотировать скриншот")
 
             // Overflow menu
             browserMenu
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 10)
         .padding(.vertical, 9)
-        .background(
-            LinearGradient(
-                colors: [Color(hex: 0x12111E), Color(hex: 0x090910)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(WAI.line).frame(height: 1)
+    }
+
+    private func captureScreenshot() {
+        Task {
+            do {
+                _ = try await store.takeScreenshotAndCopy()
+                screenshotToast = "Скриншот скопирован — вставьте через ⌘V"
+                screenshotCopied = true
+            } catch {
+                screenshotToast = error.localizedDescription
+                screenshotCopied = false
+            }
+            try? await Task.sleep(nanoseconds: 1_800_000_000)
+            screenshotCopied = false
+            screenshotToast = ""
         }
     }
 
+    private func annotateScreenshot() {
+        Task {
+            do {
+                _ = try await store.takeScreenshotAndCopy()
+                showAnnotation = true
+            } catch {
+                screenshotToast = error.localizedDescription
+                try? await Task.sleep(nanoseconds: 1_800_000_000)
+                screenshotToast = ""
+            }
+        }
+    }
     // ── Find bar ─────────────────────────────────────────────────
 
     private var findBar: some View {
@@ -1269,6 +1384,12 @@ struct BrowserPaneView: View {
                 withAnimation { store.toggleFind() }
             } label: {
                 Label("Найти на странице", systemImage: "magnifyingglass")
+            }
+
+            Button {
+                annotateScreenshot()
+            } label: {
+                Label("Аннотировать скриншот", systemImage: "pencil.and.outline")
             }
 
             Divider()
@@ -1442,6 +1563,11 @@ final class AlakeyaBrowser: NSObject, ObservableObject {
     func screenshot() async throws -> String {
         guard isPresented else { throw BrowserError.unavailable }
         return try await store.takeScreenshot()
+    }
+
+    func prepareManualVerificationAccessibilityMode() async throws -> String {
+        guard isPresented else { throw BrowserError.unavailable }
+        return try await store.prepareManualVerificationAccessibilityMode()
     }
 
     func highlightElement(elementID: String = "", textSearch: String = "", color: String = "", durationMs: Int = 4000, label: String = "") async throws -> String {

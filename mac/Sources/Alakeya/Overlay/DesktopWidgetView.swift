@@ -126,12 +126,15 @@ struct FloatingOrbView: View {
     var onResize: ((CGFloat, Bool) -> Void)?
     var onMove: ((NSPoint, Bool) -> Void)?
 
+    @State private var visibleStateText: String?
+    @State private var stateTextHideTask: Task<Void, Never>?
+
     var body: some View {
         HStack(spacing: 10) {
             orbArea
 
-            if let stateText {
-                stateCloud(stateText)
+            if let visibleStateText {
+                stateCloud(visibleStateText)
                     .transition(
                         .opacity.combined(
                             with: .scale(scale: 0.92, anchor: .leading)
@@ -142,6 +145,14 @@ struct FloatingOrbView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.clear)
         .animation(WAI.easeOut, value: store.status)
+        .animation(WAI.easeOut, value: store.voiceListening)
+        .animation(WAI.easeOut, value: visibleStateText)
+        .onAppear {
+            showStateToastIfNeeded(stateText)
+        }
+        .onChange(of: stateText) { _, text in
+            showStateToastIfNeeded(text)
+        }
         .overlay(
             WidgetInteractionLayer(
                 currentSize: model.size,
@@ -155,12 +166,12 @@ struct FloatingOrbView: View {
     // ── Orb + aura ────────────────────────────────────────
 
     private var visualOrbSize: CGFloat {
-        model.size * 0.5
+        model.size
     }
 
     private var orbArea: some View {
         OrbView(
-            state: store.assistantState,
+            state: effectiveAssistantState,
             emotion: store.orbEmotion,
             size: visualOrbSize,
             onTap: nil
@@ -170,6 +181,10 @@ struct FloatingOrbView: View {
     }
 
     private var stateText: String? {
+        if store.voiceListening {
+            return "Слушаю..."
+        }
+
         switch store.status {
         case .ready:
             return nil
@@ -185,6 +200,27 @@ struct FloatingOrbView: View {
             return "Жду..."
         case .error:
             return "Ошибка"
+        }
+    }
+
+    private var effectiveAssistantState: AssistantState {
+        store.voiceListening ? .listening : store.assistantState
+    }
+
+    private func showStateToastIfNeeded(_ text: String?) {
+        guard let text, !text.isEmpty else {
+            stateTextHideTask?.cancel()
+            stateTextHideTask = nil
+            withAnimation(WAI.easeOut) { visibleStateText = nil }
+            return
+        }
+
+        stateTextHideTask?.cancel()
+        withAnimation(WAI.easeOut) { visibleStateText = text }
+        stateTextHideTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation(WAI.easeOut) { visibleStateText = nil }
         }
     }
 

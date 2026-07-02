@@ -19,10 +19,16 @@ echo "▶ Packaging $APP…"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
 mkdir -p "$APP/Contents/Resources"
+mkdir -p "$APP/Contents/Resources/scripts"
 
 cp "$BINARY" "$APP/Contents/MacOS/Alakeya"
 chmod +x "$APP/Contents/MacOS/Alakeya"
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
+
+if [ -f "$ROOT/scripts/browser_agent_extract.py" ]; then
+    cp "$ROOT/scripts/browser_agent_extract.py" "$APP/Contents/Resources/scripts/browser_agent_extract.py"
+    chmod +x "$APP/Contents/Resources/scripts/browser_agent_extract.py"
+fi
 
 # App icon
 if [ -f "$ICNS" ]; then

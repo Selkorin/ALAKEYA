@@ -1,0 +1,11 @@
+{
+  "": {
+    "swift-dependencies": "/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/master.swiftdeps"
+  },
+  "/Users/werni/Selkorin/minitest/Sources/DividerTest/DividerTest.swift": {
+    "dependencies": "/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/DividerTest.d",
+    "object": "/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/DividerTest.swift.o",
+    "swiftmodule": "/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/DividerTest~partial.swiftmodule",
+    "swift-dependencies": "/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/DividerTest.swiftdeps"
+  }
+}

@@ -186,11 +186,34 @@ struct MessageBubbleView: View {
     private var imageGrid: some View {
         let imgs = message.images.compactMap { NSImage(data: $0) }
         if imgs.count == 1 {
-            imageTile(imgs[0], size: 140, overlayText: nil)
+            singleImagePreview(imgs[0])
                 .onTapGesture { onTapImage(imgs[0]) }
         } else if !imgs.isEmpty {
             multiImageGrid(imgs)
         }
+    }
+
+    private func singleImagePreview(_ img: NSImage) -> some View {
+        let maxWidth: CGFloat = isUser ? 220 : 420
+        let maxHeight: CGFloat = isUser ? 220 : 430
+        let imageSize = img.size.width > 0 && img.size.height > 0
+            ? img.size
+            : CGSize(width: 1, height: 1)
+        let scale = min(maxWidth / imageSize.width, maxHeight / imageSize.height, 1)
+        let width = max(120, imageSize.width * scale)
+        let height = max(120, imageSize.height * scale)
+
+        return Image(nsImage: img)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: width, height: height)
+            .background(Color.black.opacity(0.16))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(WAI.lineAccent.opacity(0.45), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.32), radius: 10, y: 5)
     }
 
     private func imageTile(_ img: NSImage, size: CGFloat, overlayText: String?) -> some View {

@@ -8,3 +8,38 @@ build/*.zip
 # Silero Local TTS
 .venv/
 *.wav
+
+# Build artifacts
+*.d
+*.o
+*.swiftdeps
+*.swiftdoc
+*.swiftmodule
+
+# Temporary files
+*.tmp
+*.temp
+*~
+1cd
+alakeya
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+scripts/__pycache__/
+
+# Local data directories
+data/
+minitest/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

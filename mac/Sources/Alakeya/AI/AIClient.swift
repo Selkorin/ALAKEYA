@@ -17,6 +17,8 @@ final class AIClient {
             client = try AnthropicClient(configuration: configuration, apiKey: key)
         case .openRouter:
             client = try OpenRouterClient(configuration: configuration, apiKey: key)
+        case .routeLLM:
+            client = try RouteLLMClient(configuration: configuration, apiKey: key)
         case .custom:
             client = try CustomOpenAICompatibleClient(configuration: configuration, apiKey: key)
         }

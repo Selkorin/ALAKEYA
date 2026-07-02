@@ -23,6 +23,8 @@ enum ActionType: String, Codable {
     case browserScreenshot  = "browser_screenshot"
     case browserHardReload  = "browser_hard_reload"
     case browserZoom        = "browser_zoom"
+    case computerScreenshot = "computer_screenshot"
+    case computerWait       = "computer_wait"
     // medium
     case openApp       = "open_app"
     case navigateURL   = "navigate_url"
@@ -34,12 +36,29 @@ enum ActionType: String, Codable {
     case browserClick  = "browser_click"
     case browserType   = "browser_type"
     case browserSelect = "browser_select"
+    case computerMouseMove  = "computer_mouse_move"
+    case computerClick      = "computer_click"
+    case computerDoubleClick = "computer_double_click"
+    case computerRightClick = "computer_right_click"
+    case computerDrag       = "computer_drag"
+    case computerScroll     = "computer_scroll"
+    case computerType       = "computer_type"
+    case computerKey        = "computer_key"
     // browser extras (low risk)
     case searchInternet = "search_internet"
     // -- research
     case browserHighlightElement = "browser_highlight_element"
     case browserExtractData      = "browser_extract_data"
     case browserSeoAudit         = "browser_seo_audit"
+    case browserAgentExtract     = "browser_agent_extract"
+    case browserAgentSearch      = "browser_agent_search"
+    // browser-use (powerful web automation with JS rendering)
+    case browserUseAutomate      = "browser_use_automate"
+    case browserUseExtract       = "browser_use_extract"
+    case browserUseScreenshot    = "browser_use_screenshot"
+    case browserUseSearch        = "browser_use_search"
+    case browserUseSessionCreate = "browser_use_session_create"
+    case browserUseSessionClose  = "browser_use_session_close"
     // connectors (read=low, write=medium, send=high)
     case connectorRead  = "connector_read"
     case connectorWrite = "connector_write"
@@ -75,7 +94,9 @@ enum ActionType: String, Codable {
             return .high
         case .openApp, .navigateURL, .typeText, .clickElement, .appleScript,
              .openFile, .createFolder, .browserClick, .browserType, .browserSelect,
-             .connectorWrite:
+             .connectorWrite, .browserUseAutomate, .computerMouseMove, .computerClick,
+             .computerDoubleClick, .computerRightClick, .computerDrag, .computerScroll,
+             .computerType, .computerKey:
             return .medium
         default:
             return .low

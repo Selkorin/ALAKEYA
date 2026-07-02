@@ -32,10 +32,11 @@ struct RootView: View {
                 ChatView(
                     store:        store,
                     updateManager: updateManager,
-                    onSubmit:     {
+                    onSubmit:     { text, images in
                         guard let sessionID = store.activeSessionID else { return }
                         runner.runTask(
-                            $0,
+                            text,
+                            images: images,
                             sessionID: sessionID,
                             agentID: store.settings.models.activeSkillID
                         )

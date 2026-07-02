@@ -58,6 +58,19 @@ func submitIsAlwaysHighRisk() {
 }
 
 @Test
+func searchInternetDoesNotRequirePermission() {
+    let action = Action(
+        type: .searchInternet,
+        title: "Поиск",
+        description: "Поиск",
+        target: "топ 10 отелей Крыма",
+        scope: "Research",
+        args: ["query": "топ 10 отелей Крыма"]
+    )
+    #expect(PolicyEngine.shared.shouldAutoConfirm(action) == true)
+}
+
+@Test
 func passiveBrowserActionsAreLowRisk() {
     for tool in ["browser_scroll", "browser_wait", "browser_screenshot"] {
         let action = BrowserTools().makeAction(toolName: tool, args: [:])
@@ -106,6 +119,29 @@ func plainBusinessSearchUsesDeterministicPipeline() {
     #expect(ToolRunner.detectScope("Собери 15 стоматологий в Москве в CSV") == .localBusinessResearchThenExport)
 }
 
+@Test @MainActor
+func internetLookupUsesHeadlessResearchScope() {
+    #expect(ToolRunner.detectScope("Найди в интернете последние новости про ИИ") == .research)
+    #expect(ToolRunner.detectScope("Проанализируй сайт https://example.com и найди контакты") == .research)
+    #expect(ToolRunner.detectScope("Проверь актуальную цену биткоина сегодня") == .research)
+    #expect(ToolRunner.detectScope("найди топ 10 отелей Крыма") == .research)
+    #expect(ToolRunner.detectScope("найди лучшие гостиницы крыма") == .research)
+    #expect(ToolRunner.detectScope("найди номера лучших отелей Крыма 10 штук") == .research)
+    #expect(ToolRunner.detectScope("подбери отели в Крыму с бассейном") == .research)
+    #expect(ToolRunner.detectScope("посоветуй санатории Крыма для семьи") == .research)
+    #expect(ToolRunner.detectScope("рейтинг ресторанов Ялты") == .research)
+    #expect(ToolRunner.detectScope("лучшие кафе Севастополя") == .research)
+}
+
+@Test @MainActor
+func explicitBrowserNavigationStillUsesBrowserScope() {
+    #expect(ToolRunner.detectScope("Открой сайт https://example.com") == .browser)
+    #expect(ToolRunner.detectScope("Прокрути страницу вниз") == .browser)
+    #expect(ToolRunner.detectScope("найди отели в Ялте в 2гис") == .localBusinessResearch)
+    #expect(ToolRunner.detectScope("собери контакты отелей Крыма") == .localBusinessResearch)
+    #expect(ToolRunner.detectScope("найди телефоны ресторанов Ялты") == .localBusinessResearch)
+}
+
 @Test
 func hotelSearchSurvivesCityFollowUp() throws {
     let initial = LocalBusinessQuery.parse(from: "привет найди 10 отелей")
@@ -120,6 +156,46 @@ func hotelSearchSurvivesCityFollowUp() throws {
     #expect(resumed.category == "отели")
     #expect(resumed.targetCount == 10)
     #expect(resumed.city == "Севастополь")
+}
+
+@Test
+func hotelRegionQueriesResolveKnownRegions() {
+    let crimea = LocalBusinessQuery.parse(from: "найди контакты отелей крыма")
+    #expect(crimea.category == "отели")
+    #expect(crimea.city == "Крым")
+
+    let krasnodar = LocalBusinessQuery.parse(from: "собери гостиницы Краснодарского края")
+    #expect(krasnodar.city == "Краснодарский край")
+}
+
+@Test
+func hotelResearchPlanUsesHeadlessSearchInstructions() {
+    let plan = SearchQueryPlanner.plan(for: "найди топ 10 отелей Крыма")
+    #expect(plan.intent == ResearchIntent.hotelResearch.rawValue)
+    #expect(plan.queries.contains { $0.localizedCaseInsensitiveContains("Крым") })
+    #expect(plan.instructions.localizedCaseInsensitiveContains("browser_agent_search"))
+    #expect(plan.instructions.localizedCaseInsensitiveContains("Не отвечай списком ссылок"))
+    #expect(plan.instructions.localizedCaseInsensitiveContains("Телефон/контакты"))
+    #expect(plan.instructions.localizedCaseInsensitiveContains("Источники"))
+    #expect(!plan.instructions.localizedCaseInsensitiveContains("Выполни каждый запрос в браузере"))
+}
+
+@Test
+func topAndHotelQueriesUseExtractionSearchMode() {
+    #expect(Executors.defaultBrowserAgentSearchMode(
+        query: "найди топ 10 отелей Крыма",
+        requestedMode: nil
+    ) == "search_extract")
+
+    #expect(Executors.defaultBrowserAgentSearchMode(
+        query: "подбери лучшие гостиницы в Ялте с бассейном",
+        requestedMode: nil
+    ) == "search_extract")
+
+    #expect(Executors.defaultBrowserAgentSearchMode(
+        query: "курс доллара сегодня",
+        requestedMode: nil
+    ) == "search")
 }
 
 @Test
@@ -158,8 +234,63 @@ func businessCardWrapperAndPhoneArraysAreParsed() throws {
         city: "Севастополь"
     )
     #expect(leads.count == 2)
-    #expect(leads[0].phone == "+7 978 123-45-67")
+    #expect(leads[0].phone == "+7 (978) 123-45-67")
     #expect(leads[0].notes.contains("4,9"))
+}
+
+@Test
+func localBusinessDropsPhoneOnlyJunkRows() {
+    let json = """
+    {"phone": "8 (800) 511-06-34", "address": "", "name": ""}
+    """
+    let leads = LocalBusinessExtractionNormalizer.parseContactCards(
+        json,
+        source: "Google Поиск",
+        sourceURL: "https://google.com/search?q=test",
+        city: "Севастополь"
+    )
+    #expect(leads.isEmpty)
+}
+
+@Test
+func localBusinessNormalizesRussianPhone() {
+    let normalized = LocalBusinessLeadValidator.normalizePhone("89504544661")
+    #expect(normalized == "+7 (950) 454-46-61")
+    #expect(LocalBusinessLeadValidator.hasUsableName("Google Поиск") == false)
+}
+
+@Test
+func localBusinessRejectsBotChallengeText() {
+    let pageText = """
+    Подтвердите, что запросы отправляли вы, а не робот
+    +7 (965) 340-98-22
+    yandex.ru
+    """
+    let leads = LocalBusinessExtractionNormalizer.parsePageText(
+        pageText,
+        source: "Яндекс Карты",
+        sourceURL: "https://yandex.ru/maps/?text=отели%20Крым",
+        city: "Крым"
+    )
+    #expect(leads.isEmpty)
+    #expect(LocalBusinessLeadValidator.hasUsableName("Подтвердите, что запросы отправляли вы, а не робот") == false)
+}
+
+@Test
+func defaultLocalBusinessSourcesAvoidYandexMapsFirst() {
+    let query = LocalBusinessQuery.parse(from: "выпиши в таблицу 10 отелей Крыма с номерами")
+    #expect(query.requestedSources.first == .twoGis)
+    #expect(!query.requestedSources.contains(.yandexMaps))
+    #expect(!query.requestedSources.contains(.yandexSearch))
+}
+
+@Test
+func yandexSourcesAreExplicitAndLowIntensity() {
+    let query = LocalBusinessQuery.parse(from: "найди отели Крыма в Яндекс Картах")
+    #expect(query.requestedSources.contains(.yandexMaps))
+    #expect(LocalBusinessSearchSource.yandexMaps.maxScrollAttempts == 1)
+    #expect(LocalBusinessSearchSource.yandexSearch.maxScrollAttempts == 1)
+    #expect(LocalBusinessSearchSource.twoGis.maxScrollAttempts > 1)
 }
 
 @Test
@@ -178,7 +309,7 @@ func contactObjectIsParsedAsSingleLead() {
         city: "Севастополь"
     )
     #expect(leads.count == 1)
-    #expect(leads.first?.phone == "+7 978 123-45-67")
+    #expect(leads.first?.phone == "+7 (978) 123-45-67")
 }
 
 @Test
@@ -223,5 +354,32 @@ func searchSourcesRequestEnoughResults() {
         .absoluteString ?? ""
 
     #expect(google.contains("num=20"))
-    #expect(yandex.contains("numdoc=50"))
+    #expect(yandex.contains("numdoc=10"))
+}
+
+@Test
+func sourceQualityScorerPenalizesChallengesAndProducesValidJSON() throws {
+    let ranked = SourceQualityScorer.rank([
+        (
+            url: "https://example-hotel.test/contacts",
+            title: "Отель \"Море\" контакты",
+            snippet: "Телефон +7 978 123-45-67, рейтинг 4.8, официальный сайт"
+        ),
+        (
+            url: "https://yandex.ru/search/?text=отели",
+            title: "Подтвердите, что вы не робот",
+            snippet: "captcha access denied"
+        ),
+    ])
+
+    #expect(ranked.first?.url.contains("example-hotel") == true)
+    #expect((ranked.last?.score ?? 100) < 10)
+
+    let json = SourceQualityScorer.rankJSON([
+        (url: "https://example-hotel.test", title: "Отель \"Море\"", snippet: "Телефон +7")
+    ])
+    let decoded = try #require(
+        JSONSerialization.jsonObject(with: Data(json.utf8)) as? [[String: Any]]
+    )
+    #expect(decoded.first?["title"] as? String == "Отель \"Море\"")
 }

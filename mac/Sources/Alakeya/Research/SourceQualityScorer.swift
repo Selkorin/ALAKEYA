@@ -25,12 +25,11 @@ enum SourceQualityScorer {
     ]
     private static let reviewPlatforms: Set<String> = [
         "tripadvisor.com", "tripadvisor.ru", "booking.com",
-        "ostrovok.ru", "101hotels.com", "votpusk.ru", "yandex.ru",
+        "ostrovok.ru", "101hotels.com", "votpusk.ru",
         "2gis.ru", "zoon.ru", "flamp.ru",
     ]
     private static let mapDirectories: Set<String> = [
-        "2gis.ru", "yandex.ru", "maps.google.com",
-        "avito.ru", "yell.com",
+        "2gis.ru", "yell.com",
     ]
     private static let trustedNews: Set<String> = [
         "rbc.ru", "kommersant.ru", "interfax.ru", "ria.ru",
@@ -40,6 +39,13 @@ enum SourceQualityScorer {
         "spam", "clickbait", "forum", "форум", "otvet.mail.ru",
         "pikabu.ru", "пикабу", "reddit.com",
     ]
+    private static let botChallengePatterns: [String] = [
+        "captcha", "капча", "не робот", "подтвердите, что", "verify you are human",
+        "unusual traffic", "access denied", "доступ ограничен",
+    ]
+    private static let searchEngineDomains: Set<String> = [
+        "yandex.ru", "google.com", "google.ru", "bing.com", "duckduckgo.com",
+    ]
 
     static func score(url: String, title: String, snippet: String = "", isBlocked: Bool = false) -> ScoredSource {
         var score = 20 // base
@@ -48,6 +54,9 @@ enum SourceQualityScorer {
         let domain = URL(string: url)?.host?.replacingOccurrences(of: "www.", with: "") ?? url
         let combined = (url + title + snippet).lowercased()
 
+        if searchEngineDomains.contains(domain) || domain.hasSuffix(".yandex.ru") || domain.hasSuffix(".google.com") {
+            score -= 25; reasons.append("поисковая выдача, не первоисточник")
+        }
         // Official / authoritative
         if officialDomains.contains(domain) || domain.hasSuffix(".gov.ru") {
             score += 30; reasons.append("официальный источник")
@@ -85,16 +94,19 @@ enum SourceQualityScorer {
         if lowQualityPatterns.contains(where: { combined.contains($0) }) {
             score -= 15; reasons.append("низкокачественный источник")
         }
+        if botChallengePatterns.contains(where: { combined.contains($0) }) {
+            score -= 60; reasons.append("антибот/капча")
+        }
         // Blocked / thin
         if isBlocked {
-            score -= 20; reasons.append("заблокировано")
+            score -= 40; reasons.append("заблокировано")
         }
         // Very short snippet
         if !snippet.isEmpty && snippet.count < 50 {
             score -= 10; reasons.append("мало контента")
         }
 
-        return ScoredSource(url: url, title: title, score: max(0, score), reasons: reasons)
+        return ScoredSource(url: url, title: title, score: min(100, max(0, score)), reasons: reasons)
     }
 
     /// Ranks a list of (url, title, snippet) tuples.
@@ -107,11 +119,19 @@ enum SourceQualityScorer {
     /// Returns a compact JSON description of ranked sources for the AI.
     static func rankJSON(_ sources: [(url: String, title: String, snippet: String)]) -> String {
         let ranked = rank(sources)
-        let items = ranked.map { s in
-            """
-            {"url":"\(s.url)","title":"\(s.title)","score":\(s.score),"reasons":[\(s.reasons.map { "\"\($0)\"" }.joined(separator: ","))]}
-            """
+        let items = ranked.map { s -> [String: Any] in
+            [
+                "url": s.url,
+                "title": s.title,
+                "score": s.score,
+                "reasons": s.reasons,
+            ]
         }
-        return "[\(items.joined(separator: ",\n"))]"
+        guard let data = try? JSONSerialization.data(withJSONObject: items, options: [.prettyPrinted]),
+              let json = String(data: data, encoding: .utf8)
+        else {
+            return "[]"
+        }
+        return json
     }
 }

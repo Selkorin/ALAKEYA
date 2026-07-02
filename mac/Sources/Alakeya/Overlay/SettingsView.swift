@@ -11,6 +11,7 @@ struct SettingsView: View {
     var onClose: () -> Void
 
     @Binding var tab: String
+    @State private var permissionsRefreshToken = UUID()
 
     private let tabs: [(String, String, String)] = [
         ("profile", "Профиль", "person.crop.circle"),
@@ -123,10 +124,90 @@ struct SettingsView: View {
     }
 
     private var permissions: some View {
-        section("Разрешения") {
-            permRow("Accessibility", PermissionsManager.shared.accessibilityGranted) { PermissionsManager.shared.requestAccessibility() }
-            permRow("Screen Recording", PermissionsManager.shared.screenRecordingGranted) { _ = PermissionsManager.shared.requestScreenRecording() }
-            permRow("Микрофон", PermissionsManager.shared.microphoneGranted) { Task { _ = await PermissionsManager.shared.requestMicrophone() } }
+        let _ = permissionsRefreshToken
+        return VStack(alignment: .leading, spacing: 18) {
+            section("Разрешения") {
+                permissionCard(
+                    title: "Захват экрана",
+                    subtitle: "Нужен, чтобы Алакея видела экран и могла проверять действия computer-agent.",
+                    systemImage: "rectangle.on.rectangle",
+                    granted: PermissionsManager.shared.screenRecordingGranted,
+                    kind: .screenRecording
+                ) {
+                    _ = PermissionsManager.shared.requestScreenRecording()
+                    PermissionsManager.shared.openSettings(.screenRecording)
+                }
+
+                permissionCard(
+                    title: "Управление компьютером",
+                    subtitle: "Accessibility: клики, клавиатура, Finder, окна и действия в приложениях.",
+                    systemImage: "cursorarrow.click.2",
+                    granted: PermissionsManager.shared.accessibilityGranted,
+                    kind: .accessibility
+                ) {
+                    _ = PermissionsManager.shared.requestAccessibility()
+                    PermissionsManager.shared.openSettings(.accessibility)
+                }
+
+                permissionCard(
+                    title: "Микрофон",
+                    subtitle: "Для голосовых команд и диктовки.",
+                    systemImage: "mic",
+                    granted: PermissionsManager.shared.microphoneGranted,
+                    kind: .microphone
+                ) {
+                    Task {
+                        _ = await PermissionsManager.shared.requestMicrophone()
+                        await MainActor.run {
+                            PermissionsManager.shared.openSettings(.microphone)
+                            permissionsRefreshToken = UUID()
+                        }
+                    }
+                }
+            }
+
+            if !PermissionsManager.shared.accessibilityGranted {
+                HStack(spacing: 12) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(WAI.accentBright)
+                    Text("После включения Accessibility в настройках macOS необходимо перезапустить Alakeya")
+                        .font(.system(size: 12))
+                        .foregroundStyle(WAI.textMuted)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(WAI.accentSoft)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(WAI.accent.opacity(0.3), lineWidth: 1))
+                )
+            }
+
+            if !PermissionsManager.shared.screenRecordingGranted {
+                HStack(spacing: 12) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(WAI.warning)
+                    Text("После включения Запись экрана в настройках macOS необходимо перезапустить Alakeya")
+                        .font(.system(size: 12))
+                        .foregroundStyle(WAI.textMuted)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.orange.opacity(0.1))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange.opacity(0.3), lineWidth: 1))
+                )
+            }
+
+            Button {
+                permissionsRefreshToken = UUID()
+            } label: {
+                Label("Проверить статусы", systemImage: "arrow.clockwise")
+                    .font(.system(size: 12.5, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(WAI.accentBright)
         }
     }
 
@@ -192,12 +273,81 @@ struct SettingsView: View {
             .pickerStyle(.segmented).frame(width: 240)
             .onChange(of: binding.wrappedValue) { _, _ in store.settings.save() }
     }
-    private func permRow(_ label: String, _ granted: Bool, _ request: @escaping () -> Void) -> some View {
-        HStack {
-            Text(label).font(.system(size: 13)).foregroundStyle(WAI.textDim)
-            Spacer()
-            if granted { Text("Выдано").foregroundStyle(WAI.success).font(.system(size: 12)) }
-            else { Button("Выдать", action: request).buttonStyle(.plain).foregroundStyle(WAI.accentBright).font(.system(size: 12)) }
+    private func permissionCard(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        granted: Bool,
+        kind: PermKind,
+        request: @escaping () -> Void
+    ) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(granted ? WAI.success.opacity(0.14) : WAI.accentSoft)
+                Image(systemName: systemImage)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(granted ? WAI.success : WAI.accentBright)
+            }
+            .frame(width: 42, height: 42)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(WAI.text)
+                    Text(granted ? "Включено" : "Не включено")
+                        .font(.system(size: 11.5, weight: .semibold))
+                        .foregroundStyle(granted ? WAI.success : WAI.warning)
+                        .padding(.horizontal, 8)
+                        .frame(height: 22)
+                        .background((granted ? WAI.success : WAI.warning).opacity(0.13))
+                        .clipShape(Capsule())
+                }
+                Text(subtitle)
+                    .font(.system(size: 12))
+                    .foregroundStyle(WAI.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 18)
+
+            Toggle("", isOn: Binding(
+                get: { granted },
+                set: { newValue in
+                    if newValue {
+                        request()
+                    } else {
+                        PermissionsManager.shared.openSettings(kind)
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        permissionsRefreshToken = UUID()
+                    }
+                }
+            ))
+            .labelsHidden()
+            .toggleStyle(.switch)
+            .tint(WAI.accent)
+
+            Button {
+                PermissionsManager.shared.openSettings(kind)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    permissionsRefreshToken = UUID()
+                }
+            } label: {
+                Image(systemName: "arrow.up.forward.app")
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(width: 32, height: 32)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(WAI.textDim)
         }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(WAI.surface)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(WAI.line, lineWidth: 1))
+        )
     }
 }

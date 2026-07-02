@@ -189,7 +189,7 @@ private enum InlineToken {
 
 // ── Inline parser + AttributedString builder ──────────────────
 
-private enum MDInline {
+enum MDInline {
 
     // MARK: - Public entry
 
@@ -266,8 +266,7 @@ private enum MDInline {
                 let inner = s.dropFirst()
                 if let delimRange = inner.range(of: "](") {
                     let title = String(inner[..<delimRange.lowerBound])
-                    let afterParen = inner.index(after: delimRange.upperBound)
-                    let rest = inner[afterParen...]
+                    let rest = inner[delimRange.upperBound...]
                     if let closeUrl = rest.firstIndex(of: ")") {
                         let url = String(rest[..<closeUrl])
                         tokens.append(.link(title: title, url: url))

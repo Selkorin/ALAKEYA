@@ -10,6 +10,7 @@ enum ToolScope {
     case localBusinessResearchThenExport // research + export tools (~16 tools)
     case connectors                    // connector tools only
     case browserAndConnectors
+    case computer                      // full-screen mouse/keyboard/screenshot control
     case documentExport                // export_pdf/docx/csv/markdown only (4 tools)
     case scraping                      // browser + aggressive extraction (no research_plan)
     case all                           // everything registered
@@ -45,8 +46,8 @@ final class ToolRouter {
             return all
 
         case .browser:
-            // All browser control tools only
-            return filter { isBrowserControlTool($0) }
+            // Visible browser controls + explicit headless browser automation.
+            return filter { isBrowserControlTool($0) || isHeadlessBrowserAutomationTool($0) }
 
         case .research:
             // General research: search + extract WITHOUT browser control
@@ -55,21 +56,24 @@ final class ToolRouter {
 
         case .scraping:
             // Browser + extraction for aggressive data scraping
-            return filter { isBrowserControlTool($0) || isBusinessExtractionTool($0) || isSearchTool($0) }
+            return filter { isBrowserControlTool($0) || isHeadlessBrowserAutomationTool($0) || isBusinessExtractionTool($0) || isSearchTool($0) }
 
         case .localBusinessResearch:
             // Browser subset + business/contact extraction + search tools
-            return filter { isBrowserControlTool($0) || isBusinessExtractionTool($0) || isSearchTool($0) }
+            return filter { isBrowserControlTool($0) || isHeadlessBrowserAutomationTool($0) || isBusinessExtractionTool($0) || isSearchTool($0) }
 
         case .localBusinessResearchThenExport:
             // Research tools + export tools (staged: research first, then export)
-            return filter { isBrowserControlTool($0) || isBusinessExtractionTool($0) || isExportTool($0) }
+            return filter { isBrowserControlTool($0) || isHeadlessBrowserAutomationTool($0) || isBusinessExtractionTool($0) || isSearchTool($0) || isExportTool($0) }
 
         case .connectors:
             return filter { isConnectorTool($0) }
 
         case .browserAndConnectors:
-            return filter { isBrowserControlTool($0) || isConnectorTool($0) }
+            return filter { isBrowserControlTool($0) || isHeadlessBrowserAutomationTool($0) || isConnectorTool($0) }
+
+        case .computer:
+            return filter { isComputerControlTool($0) }
 
         case .documentExport:
             return filter { isExportTool($0) }
@@ -78,9 +82,34 @@ final class ToolRouter {
 
     // MARK: - Tool classifiers
 
-    // All browser_* tools (control + interaction + extraction)
+    // Visible UI browser tools only. Headless browser-agent search is classified
+    // separately as search, so normal research does not inherit UI-browser tools.
     private func isBrowserControlTool(_ name: String) -> Bool {
-        name.hasPrefix("browser_")
+        let names: Set<String> = [
+            "browser_open",
+            "browser_read_page",
+            "browser_click",
+            "browser_type",
+            "browser_back",
+            "browser_reload",
+            "browser_scroll",
+            "browser_select",
+            "browser_submit",
+            "browser_wait",
+            "browser_screenshot",
+            "browser_hard_reload",
+            "browser_zoom",
+            "browser_clear_cookies",
+            "browser_clear_cache",
+            "browser_highlight_element",
+            "browser_extract_data",
+            "browser_seo_audit",
+        ]
+        return names.contains(name)
+    }
+
+    private func isHeadlessBrowserAutomationTool(_ name: String) -> Bool {
+        name.hasPrefix("browser_use_")
     }
 
     // General research: text extraction, SERP, articles, quality scoring
@@ -114,10 +143,16 @@ final class ToolRouter {
         return prefixes.contains { name.hasPrefix($0) }
     }
 
+    private func isComputerControlTool(_ name: String) -> Bool {
+        name.hasPrefix("computer_")
+    }
+
     // Headless search — research without opening browser
     private func isSearchTool(_ name: String) -> Bool {
         let names: Set<String> = [
             "search_internet",
+            "browser_agent_extract",
+            "browser_agent_search",
             "research_plan",
             "quality_score_results",
         ]

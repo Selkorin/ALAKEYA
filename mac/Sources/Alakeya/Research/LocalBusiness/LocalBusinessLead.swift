@@ -53,7 +53,7 @@ struct LocalBusinessLead: Identifiable {
     }
 
     var isUsable: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        LocalBusinessLeadValidator.hasUsableName(name)
     }
 
     /// Convert leads array to ParsedMarkdownTable for chat storage and export.

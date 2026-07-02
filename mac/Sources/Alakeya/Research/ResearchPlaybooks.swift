@@ -43,13 +43,13 @@ enum ResearchPlaybooks {
         intentTypes: [.hotelResearch, .travelResearch],
         steps: [
             "1. Вызвать research_plan для генерации запросов",
-            "2. Выполнить 3–5 поисков через browser_open",
-            "3. На каждой странице вызвать extract_hotel_cards",
+            "2. Выполнить 3–5 поисков через browser_agent_search/search_internet без открытия UI-браузера",
+            "3. При нехватке данных спарсить top-N страниц через browser_agent_search(mode=search_extract)",
             "4. Дедуплицировать по названию, ранжировать по рейтингу",
             "5. Собрать ≥5 отелей с источниками",
             "6. Предложить экспорт: PDF, Excel, Word",
         ],
-        preferredTools: ["research_plan", "browser_open", "extract_hotel_cards", "quality_score_results", "export_pdf", "export_csv"],
+        preferredTools: ["research_plan", "browser_agent_search", "search_internet", "quality_score_results", "export_pdf", "export_csv"],
         outputSchema: [
             "name": "string", "location": "string", "stars": "int",
             "rating": "float", "reviewCount": "int", "priceFrom": "string", "source": "string",
@@ -72,13 +72,13 @@ enum ResearchPlaybooks {
         intentTypes: [.localBusinessSearch, .contactResearch, .clientResearch],
         steps: [
             "1. research_plan → generate queries",
-            "2. Поиск по 2GIS, Яндекс.Карты, Avito, VK",
-            "3. extract_business_cards на каждом источнике",
+            "2. Поиск по web/каталогам через browser_agent_search/search_internet без открытия UI-браузера",
+            "3. При нехватке карточек использовать browser_agent_search(mode=search_extract)",
             "4. Дедуплицировать по названию и телефону",
             "5. Собрать N контактов (сколько запросил пользователь)",
             "6. Предложить экспорт в CSV / Google Sheets",
         ],
-        preferredTools: ["research_plan", "browser_open", "extract_business_cards", "extract_contact_cards", "export_csv", "export_docx"],
+        preferredTools: ["research_plan", "browser_agent_search", "search_internet", "export_csv", "export_docx"],
         outputSchema: [
             "name": "string", "phone": "string", "address": "string",
             "website": "string", "rating": "float", "category": "string",
@@ -105,7 +105,7 @@ enum ResearchPlaybooks {
             "3. Если данные расходятся — пометить как спорное",
             "4. Сформулировать ответ с указанием источников",
         ],
-        preferredTools: ["research_plan", "browser_open", "extract_article", "browser_extract_data"],
+        preferredTools: ["research_plan", "browser_agent_search", "search_internet", "quality_score_results"],
         outputSchema: ["fact": "string", "confidence": "string", "sources": "[string]"],
         exportSuggestion: "",
         responseTemplate: """
@@ -172,7 +172,7 @@ enum ResearchPlaybooks {
             "4. Синтез с указанием источников",
             "5. НЕ собирать приватную информацию",
         ],
-        preferredTools: ["research_plan", "browser_open", "browser_extract_data", "extract_article"],
+        preferredTools: ["research_plan", "browser_agent_search", "search_internet"],
         outputSchema: ["name": "string", "bio": "string", "profiles": "[url]", "mentions": "[url]"],
         exportSuggestion: "",
         responseTemplate: "**Публичная информация о [имя]:**\n...\n> Источники: [chips]"
@@ -184,10 +184,10 @@ enum ResearchPlaybooks {
         intentTypes: [.general],
         steps: [
             "1. research_plan → queries",
-            "2. browser_open + browser_extract_data",
+            "2. browser_agent_search/search_internet без открытия UI-браузера",
             "3. Синтез ответа с источниками",
         ],
-        preferredTools: ["research_plan", "browser_open", "browser_extract_data", "extract_article"],
+        preferredTools: ["research_plan", "browser_agent_search", "search_internet"],
         outputSchema: ["summary": "string", "keyFacts": "[string]", "sources": "[url]"],
         exportSuggestion: "",
         responseTemplate: "**Ответ:**\n...\n\nИсточники: [chips]"

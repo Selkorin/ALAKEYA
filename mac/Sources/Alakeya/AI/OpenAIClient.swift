@@ -93,7 +93,27 @@ final class OpenAIClient: AIProviderClient {
         for r in results {
             messages.append(["role": "tool", "tool_call_id": r.callID, "content": r.output])
         }
+        appendToolImages(results, to: &messages)
         return try await callOpenAI(messages: messages, tools: tools)
+    }
+
+    private func appendToolImages(_ results: [ToolCallResult], to messages: inout [[String: Any]]) {
+        for result in results {
+            guard let image = result.imageBase64JPEG, !image.isEmpty else { continue }
+            messages.append([
+                "role": "user",
+                "content": [
+                    [
+                        "type": "text",
+                        "text": "Attached screenshot result for tool \(result.toolName). Use coordinate_space 1280x800 for the next computer_* action.",
+                    ],
+                    [
+                        "type": "image_url",
+                        "image_url": ["url": "data:image/jpeg;base64,\(image)"],
+                    ],
+                ],
+            ])
+        }
     }
 
     private func callOpenAI(messages: [[String: Any]], tools: [[String: Any]]) async throws -> AIProviderResponse {

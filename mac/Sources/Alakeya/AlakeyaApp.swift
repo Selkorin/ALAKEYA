@@ -1,6 +1,10 @@
 import SwiftUI
 import AppKit
 
+extension Notification.Name {
+    static let alakeyaShowVoiceOrb = Notification.Name("alakeya.showVoiceOrb")
+}
+
 @main
 struct AlakeyaApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
@@ -23,10 +27,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
 
+        // Check permissions on launch WITHOUT triggering prompts
+        let perms = PermissionsManager.shared
+        if !perms.accessibilityGranted {
+            // Only show prompt if permission is missing
+            _ = perms.requestAccessibility()
+        }
+        if !perms.screenRecordingGranted {
+            // Only show prompt if permission is missing
+            _ = perms.requestScreenRecording()
+        }
+
         store  = AgentStore()
         runner = ToolRunner(store: store)
+        ToolRouter.shared.register(ComputerTools())
         ToolRouter.shared.register(LocalFileTools())
         ToolRouter.shared.register(BrowserTools())
+        ToolRouter.shared.register(BrowserAgentTools())
+        ToolRouter.shared.register(BrowserUseTools())
         ToolRouter.shared.register(ConnectorTools())
         ToolRouter.shared.register(ResearchTools())
         ToolRouter.shared.register(DocumentTools())
@@ -43,7 +61,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusBar = StatusBarController()
 
         orbController.onOpenPanel = { [weak self] in
-            self?.panelController.toggle()
+            self?.panelController.open()
+            self?.voice.start()
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .alakeyaShowVoiceOrb,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if self.orbController.isShown {
+                    self.voice.stop()
+                    self.orbController.hide()
+                } else {
+                    self.orbController.show()
+                    self.voice.start()
+                }
+            }
         }
 
         statusBar.onToggleWidget = { [weak self] in

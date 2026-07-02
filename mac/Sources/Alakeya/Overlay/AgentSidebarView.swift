@@ -141,60 +141,73 @@ struct AgentSidebarView: View {
         let count = store.sessions.filter({ $0.agentId == id }).count
 
         return VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                Button {
-                    store.openLatestChat(for: id)
-                    agentsOpen = false
-                    sidebarOpen = false
-                    store.showSettings = false
-                } label: {
-                    HStack(spacing: 9) {
-                    if isDefault {
-                        defaultAvatar(size: 32)
-                    } else {
-                        userAgentAvatar(id: id, size: 32)
-                    }
-
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(name)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(WAI.text).lineLimit(1)
-                        if showsExpandedNavigation {
-                            Text(isDefault ? "Основной агент" : "\(count) чатов")
-                                .font(.system(size: 10.5)).foregroundStyle(WAI.textMuted)
-                        }
-                    }
-                    Spacer(minLength: 4)
-                    if showsExpandedNavigation {
-                        if count > 0 {
-                            Text("\(count)")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(WAI.textMuted)
-                                .padding(.horizontal, 6).padding(.vertical, 2)
-                                .background(RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.06)))
-                        }
-                    }
-                    }
-                    .padding(.leading, 10)
-                    .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
+            HStack(spacing: 8) {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         if isExpanded { expandedAgentIDs.remove(id) }
                         else { expandedAgentIDs.insert(id) }
                     }
                 } label: {
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(isExpanded ? WAI.accentBright : WAI.textMuted)
-                        .frame(width: 34, height: 48)
-                        .contentShape(Rectangle())
+                    HStack(spacing: 10) {
+                    if isDefault {
+                        defaultAvatar(size: 32)
+                    } else {
+                        userAgentAvatar(id: id, size: 32)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 7) {
+                        Text(name)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(WAI.text).lineLimit(1)
+                            Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(isExpanded ? WAI.accentBright : WAI.textMuted)
+                                .contentTransition(.symbolEffect(.replace))
+                        }
+                        if showsExpandedNavigation {
+                            Text(isDefault ? "Основной агент" : "\(count) чатов")
+                                .font(.system(size: 10.5)).foregroundStyle(WAI.textMuted)
+                        }
+                    }
+                    Spacer(minLength: 4)
+                    }
+                    .padding(.leading, 10)
+                    .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help(isExpanded ? "Скрыть чаты" : "Показать чаты")
+
+                if showsExpandedNavigation {
+                    Text("\(count)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(WAI.textDim)
+                        .frame(minWidth: 18)
+
+                    Button {
+                        doCreateChat(id, name: name)
+                        agentsOpen = false
+                        sidebarOpen = false
+                        store.showSettings = false
+                    } label: {
+                        Image(systemName: "bubble.left")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(WAI.textDim)
+                            .frame(width: 30, height: 30)
+                            .background(
+                                RoundedRectangle(cornerRadius: 7)
+                                    .fill(Color.white.opacity(0.035))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 7)
+                                    .stroke(WAI.line, lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .help("Новый чат с \(name)")
+                    .padding(.trailing, 8)
+                }
             }
             .background(RoundedRectangle(cornerRadius: 12).fill(isActive ? WAI.accentSoft.opacity(0.3) : Color.clear))
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(

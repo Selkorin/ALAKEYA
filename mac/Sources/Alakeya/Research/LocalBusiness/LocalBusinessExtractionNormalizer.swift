@@ -14,6 +14,7 @@ enum LocalBusinessExtractionNormalizer {
 
     /// Parse JSON string from extract_business_cards into leads.
     static func parseBusinessCards(_ json: String, source: String, sourceURL: String, city: String) -> [LocalBusinessLead] {
+        guard !looksLikeBotChallenge(json) else { return [] }
         guard let data = json.data(using: .utf8),
               let root = try? JSONSerialization.jsonObject(with: data) else {
             return parsePageText(json, source: source, sourceURL: sourceURL, city: city)
@@ -55,6 +56,7 @@ enum LocalBusinessExtractionNormalizer {
     // MARK: - Contact Cards JSON
 
     static func parseContactCards(_ json: String, source: String, sourceURL: String, city: String) -> [LocalBusinessLead] {
+        guard !looksLikeBotChallenge(json) else { return [] }
         guard let data = json.data(using: .utf8),
               let root = try? JSONSerialization.jsonObject(with: data) else {
             return []
@@ -75,7 +77,7 @@ enum LocalBusinessExtractionNormalizer {
                 ?? firstString(card["tel"])
                 ?? ""
             let addr  = (card["address"] as? String ?? "").trimmingCharacters(in: .whitespaces)
-            guard !name.isEmpty || !phone.isEmpty else { return nil }
+            guard LocalBusinessLeadValidator.hasUsableName(name) else { return nil }
             let lead = LocalBusinessLead(
                 name: name,
                 city: city,
@@ -95,9 +97,11 @@ enum LocalBusinessExtractionNormalizer {
     /// Heuristic extraction from raw page text when structured JSON fails.
     /// Only extracts visible text — never invents data.
     static func parsePageText(_ text: String, source: String, sourceURL: String, city: String) -> [LocalBusinessLead] {
+        guard !looksLikeBotChallenge(text) else { return [] }
+
         var leads: [LocalBusinessLead] = []
         let lines = text.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
-        let phoneRE = try! NSRegularExpression(pattern: #"[\+7|8][\s\-\(]?\d{3}[\s\-\)]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}"#)
+        let phoneRE = try! NSRegularExpression(pattern: #"(?:\+7|7|8)[\s\-\(]?\d{3}[\s\-\)]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}"#)
 
         var currentName = ""
         var currentPhone = ""
@@ -184,5 +188,20 @@ enum LocalBusinessExtractionNormalizer {
             }?.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return nil
+    }
+
+    static func looksLikeBotChallenge(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        let patterns = [
+            #"подтвердите[, ]+что"#,
+            #"не робот"#,
+            #"запросы отправляли вы"#,
+            #"captcha|капч[аиу]"#,
+            #"robot check|verify you are human|unusual traffic"#,
+            #"access denied|доступ ограничен"#,
+        ]
+        return patterns.contains {
+            lower.range(of: $0, options: [.regularExpression, .caseInsensitive]) != nil
+        }
     }
 }

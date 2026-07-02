@@ -1,0 +1,186 @@
+import SwiftUI
+import AppKit
+
+// ============================================================
+// BrowserSplitView.swift — Custom 2-pane splitter for chat + browser
+// ============================================================
+// Provides a draggable divider between chat area and browser panel.
+// Key features:
+// - Wide invisible hit area (18px) for easy grabbing
+// - Thin visible line (2px)
+// - No remounting of content during drag
+// - Persistent width via @AppStorage
+// - Proper min/max constraints
+
+struct BrowserSplitView<Left: View, Right: View>: View {
+    private let left: Left
+    private let right: Right
+
+    private let minLeftWidth: CGFloat
+    private let minRightWidth: CGFloat
+    private let dividerHitWidth: CGFloat
+    private let dividerVisibleWidth: CGFloat
+
+    @AppStorage("alakeya.browserSplit.rightWidth")
+    private var savedRightWidth: Double = 560
+
+    @State private var dragStartRightWidth: CGFloat?
+
+    init(
+        minLeftWidth: CGFloat = 720,
+        minRightWidth: CGFloat = 420,
+        dividerHitWidth: CGFloat = 18,
+        dividerVisibleWidth: CGFloat = 2,
+        @ViewBuilder left: () -> Left,
+        @ViewBuilder right: () -> Right
+    ) {
+        self.minLeftWidth = minLeftWidth
+        self.minRightWidth = minRightWidth
+        self.dividerHitWidth = dividerHitWidth
+        self.dividerVisibleWidth = dividerVisibleWidth
+        self.left = left()
+        self.right = right()
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            let totalWidth = geo.size.width
+
+            let maxRightWidth = max(
+                minRightWidth,
+                totalWidth - minLeftWidth - dividerHitWidth
+            )
+
+            let rightWidth = clamp(
+                CGFloat(savedRightWidth),
+                minRightWidth,
+                maxRightWidth
+            )
+
+            let leftWidth = max(
+                minLeftWidth,
+                totalWidth - rightWidth - dividerHitWidth
+            )
+
+            HStack(spacing: 0) {
+                left
+                    .frame(width: leftWidth)
+                    .frame(maxHeight: .infinity)
+                    .clipped()
+
+                BrowserSplitHandle(
+                    hitWidth: dividerHitWidth,
+                    visibleWidth: dividerVisibleWidth,
+                    onDragChanged: { translationX in
+                        if dragStartRightWidth == nil {
+                            dragStartRightWidth = rightWidth
+                        }
+
+                        let startWidth = dragStartRightWidth ?? rightWidth
+
+                        /*
+                         Divider находится слева от браузера.
+
+                         Тянем divider влево:
+                         translationX отрицательный,
+                         rightWidth увеличивается.
+
+                         Тянем divider вправо:
+                         translationX положительный,
+                         rightWidth уменьшается.
+                        */
+                        let proposedRightWidth = startWidth - translationX
+
+                        let nextRightWidth = clamp(
+                            proposedRightWidth,
+                            minRightWidth,
+                            maxRightWidth
+                        )
+
+                        savedRightWidth = Double(nextRightWidth)
+                    },
+                    onDragEnded: {
+                        dragStartRightWidth = nil
+                    }
+                )
+
+                right
+                    .frame(width: rightWidth)
+                    .frame(maxHeight: .infinity)
+                    .clipped()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onChange(of: geo.size.width) { _, _ in
+                let correctedRightWidth = clamp(
+                    CGFloat(savedRightWidth),
+                    minRightWidth,
+                    maxRightWidth
+                )
+
+                if abs(CGFloat(savedRightWidth) - correctedRightWidth) > 0.5 {
+                    savedRightWidth = Double(correctedRightWidth)
+                }
+            }
+        }
+    }
+
+    private func clamp(
+        _ value: CGFloat,
+        _ minValue: CGFloat,
+        _ maxValue: CGFloat
+    ) -> CGFloat {
+        min(max(value, minValue), maxValue)
+    }
+}
+
+struct BrowserSplitHandle: View {
+    let hitWidth: CGFloat
+    let visibleWidth: CGFloat
+    let onDragChanged: (CGFloat) -> Void
+    let onDragEnded: () -> Void
+
+    @State private var isHovering = false
+    @State private var isDragging = false
+
+    var body: some View {
+        ZStack {
+            Color.clear
+                .frame(width: hitWidth)
+                .contentShape(Rectangle())
+
+            Rectangle()
+                .fill(Color.white.opacity(isHovering || isDragging ? 0.38 : 0.14))
+                .frame(width: isHovering || isDragging ? visibleWidth : 1)
+                .frame(maxHeight: .infinity)
+        }
+        .frame(width: hitWidth)
+        .frame(maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            isHovering = hovering
+
+            #if os(macOS)
+            if hovering {
+                NSCursor.resizeLeftRight.push()
+            } else {
+                NSCursor.pop()
+            }
+            #endif
+        }
+        .highPriorityGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    isDragging = true
+                    onDragChanged(value.translation.width)
+                }
+                .onEnded { _ in
+                    isDragging = false
+                    onDragEnded()
+
+                    #if os(macOS)
+                    NSCursor.pop()
+                    #endif
+                }
+        )
+    }
+}

@@ -45,7 +45,7 @@ final class SkillStore: ObservableObject {
     private func seedDefaultsIfNeeded() {
         let fm = FileManager.default
         try? fm.createDirectory(at: skillsDir, withIntermediateDirectories: true)
-        let defaults = ["general", "swift-developer", "business", "content-creator"]
+        let defaults = ["general", "swift-developer", "business", "content-creator", "go-mcts-core"]
         for name in defaults {
             let dest = skillsDir.appendingPathComponent("\(name).md")
             guard !fm.fileExists(atPath: dest.path) else { continue }

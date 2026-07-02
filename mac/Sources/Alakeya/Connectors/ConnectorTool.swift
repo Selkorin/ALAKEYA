@@ -13,6 +13,8 @@ struct ConnectorTools: ToolHandler {
 
     func makeAction(toolName: String, args: [String: String]) -> Action? {
         let (title, description, type) = Self.meta(for: toolName, args: args)
+        var enrichedArgs = args
+        enrichedArgs["tool_name"] = toolName
         return Action(
             type: type,
             title: title,
@@ -20,7 +22,7 @@ struct ConnectorTools: ToolHandler {
             target: args["connector_id"] ?? args["id"] ?? toolName,
             scope: "Коннекторы",
             reversible: type != .connectorSend,
-            args: args
+            args: enrichedArgs
         )
     }
 
@@ -293,14 +295,14 @@ struct ConnectorTools: ToolHandler {
         fn("telegram_create_post_draft",
            "Создать черновик поста для Telegram-канала. ВСЕГДА создавай черновик перед публикацией.",
            ["channel": str("Username канала без @ или chat_id"),
-            "text": str("Текст поста, поддерживается Markdown"),
+            "text": str("Текст поста. Для красивого Telegram-оформления используй HTML: <b>, <i>, <blockquote>. Не используй Markdown ** или ###."),
             "image_url": str("URL изображения (необязательно)"),
             "parse_mode": str("MarkdownV2 / HTML / none")],
            ["channel", "text"]),
         fn("telegram_publish_post",
-           "Опубликовать пост в Telegram-канале. ТРЕБУЕТ подтверждения. Сначала покажи черновик.",
+           "Опубликовать пост в Telegram-канале. Для оформленных постов используй parse_mode HTML и теги <b>, <i>, <blockquote>.",
            ["channel": str("Username или chat_id"),
-            "text": str("Текст поста"),
+            "text": str("Готовый текст поста, не команда пользователя. Для HTML parse_mode используй только валидные Telegram HTML-теги."),
             "image_url": str("URL изображения (необязательно)"),
             "parse_mode": str("MarkdownV2 / HTML")],
            ["channel", "text"]),

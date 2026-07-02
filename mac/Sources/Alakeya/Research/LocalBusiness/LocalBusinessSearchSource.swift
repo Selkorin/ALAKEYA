@@ -9,6 +9,14 @@ enum LocalBusinessSearchSource: String, CaseIterable {
 
     var displayName: String { rawValue }
 
+    var isYandex: Bool {
+        self == .yandexMaps || self == .yandexSearch
+    }
+
+    var maxScrollAttempts: Int {
+        isYandex ? 1 : 6
+    }
+
     /// Builds a search URL for the given category and city.
     func url(category: String, city: String) -> URL? {
         let encCat  = (category + " " + city).addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
@@ -21,7 +29,7 @@ enum LocalBusinessSearchSource: String, CaseIterable {
         case .yandexSearch:
             let q = (category + " " + city + " телефон адрес")
                 .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-            return URL(string: "https://yandex.ru/search/?text=\(q)&numdoc=50")
+            return URL(string: "https://yandex.ru/search/?text=\(q)&numdoc=10")
         case .twoGis:
             let citySlug = city.lowercased()
                 .replacingOccurrences(of: "ё", with: "yo")

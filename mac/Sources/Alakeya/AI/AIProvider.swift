@@ -4,6 +4,7 @@ enum AIProviderKind: String, Codable, CaseIterable, Identifiable {
     case openAI
     case anthropic
     case openRouter
+    case routeLLM
     case custom
 
     var id: String { rawValue }
@@ -13,6 +14,7 @@ enum AIProviderKind: String, Codable, CaseIterable, Identifiable {
         case .openAI: return "OpenAI"
         case .anthropic: return "Anthropic"
         case .openRouter: return "OpenRouter"
+        case .routeLLM: return "RouteLLM"
         case .custom: return "Custom Provider"
         }
     }
@@ -22,6 +24,7 @@ enum AIProviderKind: String, Codable, CaseIterable, Identifiable {
         case .openAI: return "gpt-4o-mini"
         case .anthropic: return "claude-3-5-sonnet-latest"
         case .openRouter: return "openai/gpt-4o-mini"
+        case .routeLLM: return "auto-route"
         case .custom: return ""
         }
     }
@@ -31,6 +34,7 @@ enum AIProviderKind: String, Codable, CaseIterable, Identifiable {
         case .openAI: return "https://api.openai.com/v1"
         case .anthropic: return "https://api.anthropic.com/v1"
         case .openRouter: return "https://openrouter.ai/api/v1"
+        case .routeLLM: return "http://127.0.0.1:8000"
         case .custom: return ""
         }
     }
@@ -57,6 +61,7 @@ struct AIProviderConfiguration: Codable, Identifiable, Equatable {
         .builtIn(.openAI),
         .builtIn(.anthropic),
         .builtIn(.openRouter),
+        .builtIn(.routeLLM),
         .builtIn(.custom),
     ]
 }
@@ -125,7 +130,7 @@ extension AIProviderConfiguration {
         case .anthropic:
             let m = modelName.lowercased()
             return m.hasPrefix("claude-3") || m.contains("claude-opus") || m.contains("claude-sonnet") || m.contains("claude-haiku")
-        case .openRouter, .custom:
+        case .routeLLM, .openRouter, .custom:
             return false
         }
     }
@@ -143,10 +148,17 @@ struct ToolCallResult {
     let callID: String
     let toolName: String
     let output: String
+    let imageBase64JPEG: String?
+
+    init(callID: String, toolName: String, output: String, imageBase64JPEG: String? = nil) {
+        self.callID = callID
+        self.toolName = toolName
+        self.output = output
+        self.imageBase64JPEG = imageBase64JPEG
+    }
 }
 
 enum AIProviderResponse {
     case text(String)
     case toolCalls([AIToolCall], context: Any)
 }
-

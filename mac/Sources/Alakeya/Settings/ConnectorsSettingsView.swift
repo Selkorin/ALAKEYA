@@ -2,8 +2,7 @@ import SwiftUI
 
 // ============================================================
 // ConnectorsSettingsView.swift — Settings → Коннекторы
-// Shows connector cards grouped by category. Connect/disconnect
-// actions are stubs (TODO: real OAuth flows).
+// Shows connector cards grouped by category.
 // ============================================================
 
 struct ConnectorsSettingsView: View {
@@ -24,7 +23,7 @@ struct ConnectorsSettingsView: View {
             Text("Коннекторы")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(WAI.text)
-            Text("Подключи внешние сервисы. Реальные API-вызовы появятся в следующих версиях.")
+            Text("Подключи внешние сервисы для черновиков, публикаций и чтения данных.")
                 .font(.system(size: 12))
                 .foregroundStyle(WAI.textMuted)
         }
@@ -58,7 +57,11 @@ struct ConnectorsSettingsView: View {
                     .kerning(0.8)
             }
             ForEach(items) { connector in
-                ConnectorCard(connector: connector, status: registry.status(for: connector.id)) {
+                ConnectorCard(
+                    connector: connector,
+                    state: registry.states[connector.id],
+                    status: registry.status(for: connector.id)
+                ) {
                     registry.connect(connectorID: connector.id)
                 } onDisconnect: {
                     registry.disconnect(connectorID: connector.id)
@@ -72,6 +75,7 @@ struct ConnectorsSettingsView: View {
 
 private struct ConnectorCard: View {
     let connector: Connector
+    let state: ConnectorConnectionState?
     let status: ConnectorStatus
     let onConnect: () -> Void
     let onDisconnect: () -> Void
@@ -115,6 +119,15 @@ private struct ConnectorCard: View {
             // Expandable permissions
             if showPermissions {
                 permissionsView
+            }
+
+            if let error = state?.errorMessage, !error.isEmpty {
+                Text(error)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             // Expand toggle

@@ -1,0 +1,81 @@
+client:
+  name: basic
+  file-system: device-agnostic
+tools: {}
+targets:
+  "DividerTest-x86_64-apple-macosx15.0-debug.exe": ["<DividerTest-x86_64-apple-macosx15.0-debug.exe>"]
+  "DividerTest-x86_64-apple-macosx15.0-debug.module": ["<DividerTest-x86_64-apple-macosx15.0-debug.module>"]
+  "PackageStructure": ["<PackageStructure>"]
+  "main": ["<DividerTest-x86_64-apple-macosx15.0-debug.exe>","<DividerTest-x86_64-apple-macosx15.0-debug.module>"]
+  "test": ["<DividerTest-x86_64-apple-macosx15.0-debug.exe>","<DividerTest-x86_64-apple-macosx15.0-debug.module>"]
+default: "main"
+nodes:
+  "/Users/werni/Selkorin/minitest/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+  "/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest":
+    is-mutated: true
+commands:
+  "/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest-entitlement.plist":
+    tool: write-auxiliary-file
+    inputs: ["<entitlement-plist>","<com.apple.security.get-task-allow>"]
+    outputs: ["/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest-entitlement.plist"]
+    description: "Write auxiliary file /Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest-entitlement.plist"
+
+  "/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/werni/Selkorin/minitest/Sources/DividerTest/DividerTest.swift"]
+    outputs: ["/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/sources"]
+    description: "Write auxiliary file /Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/sources"
+
+  "/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.product/Objects.LinkFileList":
+    tool: write-auxiliary-file
+    inputs: ["<link-file-list>","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/DividerTest.swift.o"]
+    outputs: ["/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.product/Objects.LinkFileList"
+
+  "/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt":
+    tool: write-auxiliary-file
+    inputs: ["<swift-get-version>","/Library/Developer/CommandLineTools/usr/bin/swiftc"]
+    outputs: ["/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"]
+    always-out-of-date: "true"
+    description: "Write auxiliary file /Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+
+  "<DividerTest-x86_64-apple-macosx15.0-debug.exe>":
+    tool: phony
+    inputs: ["<DividerTest-x86_64-apple-macosx15.0-debug.exe-CodeSigning>"]
+    outputs: ["<DividerTest-x86_64-apple-macosx15.0-debug.exe>"]
+
+  "<DividerTest-x86_64-apple-macosx15.0-debug.module>":
+    tool: phony
+    inputs: ["/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/DividerTest.swift.o","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/Modules/DividerTest.swiftmodule"]
+    outputs: ["<DividerTest-x86_64-apple-macosx15.0-debug.module>"]
+
+  "C.DividerTest-x86_64-apple-macosx15.0-debug.exe":
+    tool: shell
+    inputs: ["/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/DividerTest.swift.o","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.product/Objects.LinkFileList"]
+    outputs: ["/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest"]
+    description: "Linking ./.build/x86_64-apple-macosx/debug/DividerTest"
+    args: ["/Library/Developer/CommandLineTools/usr/bin/swiftc","-L","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug","-o","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest","-module-name","DividerTest","-Xlinker","-no_warn_duplicate_libraries","-emit-executable","-Xlinker","-alias","-Xlinker","_DividerTest_main","-Xlinker","_main","-Xlinker","-rpath","-Xlinker","@loader_path","@/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.product/Objects.LinkFileList","-target","x86_64-apple-macosx14.0","-Xlinker","-add_ast_path","-Xlinker","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/Modules/DividerTest.swiftmodule","-F","/Library/Developer/CommandLineTools/Library/Developer/Frameworks","-sdk","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-g","-Xlinker","-rpath","-Xlinker","/Library/Developer/CommandLineTools/Library/Developer/Frameworks"]
+
+  "C.DividerTest-x86_64-apple-macosx15.0-debug.exe-entitlements":
+    tool: shell
+    inputs: ["/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest-entitlement.plist"]
+    outputs: ["<DividerTest-x86_64-apple-macosx15.0-debug.exe-CodeSigning>"]
+    description: "Applying debug entitlements to ./.build/x86_64-apple-macosx/debug/DividerTest"
+    args: ["codesign","--force","--sign","-","--entitlements","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest-entitlement.plist","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest"]
+
+  "C.DividerTest-x86_64-apple-macosx15.0-debug.module":
+    tool: shell
+    inputs: ["/Users/werni/Selkorin/minitest/Sources/DividerTest/DividerTest.swift","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/sources"]
+    outputs: ["/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/DividerTest.swift.o","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/Modules/DividerTest.swiftmodule"]
+    description: "Compiling Swift Module 'DividerTest' (1 sources)"
+    args: ["/Library/Developer/CommandLineTools/usr/bin/swiftc","-module-name","DividerTest","-emit-dependencies","-emit-module","-emit-module-path","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/Modules/DividerTest.swiftmodule","-output-file-map","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/output-file-map.json","-incremental","-c","@/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/DividerTest.build/sources","-I","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/Modules","-target","x86_64-apple-macosx14.0","-enable-batch-mode","-index-store-path","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/index/store","-Onone","-enable-testing","-j12","-DSWIFT_PACKAGE","-DDEBUG","-module-cache-path","/Users/werni/Selkorin/minitest/.build/x86_64-apple-macosx/debug/ModuleCache","-parseable-output","-Xfrontend","-entry-point-function-name","-Xfrontend","DividerTest_main","-parse-as-library","-swift-version","5","-F","/Library/Developer/CommandLineTools/Library/Developer/Frameworks","-sdk","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-g","-Xcc","-isysroot","-Xcc","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-Xcc","-fPIC","-Xcc","-g","-package-name","minitest"]
+
+  "PackageStructure":
+    tool: package-structure-tool
+    inputs: ["/Users/werni/Selkorin/minitest/","/Users/werni/Selkorin/minitest/Package.swift","/Users/werni/Selkorin/minitest/Package.resolved"]
+    outputs: ["<PackageStructure>"]
+    description: "Planning build"
+    allow-missing-inputs: true
+

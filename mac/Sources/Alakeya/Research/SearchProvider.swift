@@ -47,10 +47,10 @@ struct BrowserSearchProvider: SearchProvider {
     var isAvailable: Bool { true }
 
     func search(query: String) async throws -> [SearchResult] {
-        // Opens query in browser. The AI then calls extract_search_results to parse results.
-        // This provider signals intent; actual extraction done via AlakeyaBrowser tools.
+        // Opens query in browser as a manual fallback. Automated research
+        // should normally use search_internet/browser_agent_search instead.
         let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-        let searchURL = "https://yandex.ru/search/?text=\(encoded)"
+        let searchURL = "https://duckduckgo.com/html/?q=\(encoded)"
         await MainActor.run { AlakeyaBrowser.shared.open(searchURL) }
         // Return empty; AI will call extract_search_results after browser_wait
         return []

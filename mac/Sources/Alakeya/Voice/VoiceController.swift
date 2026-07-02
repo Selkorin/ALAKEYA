@@ -32,18 +32,25 @@ final class VoiceController {
             }
             do {
                 store.transcript = ""
+                store.voiceListening = true
                 store.setStatus(.listening)
                 try recognizer.start()
                 listening = true
             } catch {
+                store.voiceListening = false
                 store.showError("Не удалось включить микрофон.", blocked: false)
             }
         }
     }
 
     func stop() {
-        guard listening else { return }
+        guard listening else {
+            store.voiceListening = false
+            store.setStatus(.ready)
+            return
+        }
         listening = false
+        store.voiceListening = false
         recognizer.stop()
         let text = store.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         if text.isEmpty { store.setStatus(.ready) }

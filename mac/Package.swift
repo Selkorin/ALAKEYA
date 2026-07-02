@@ -17,7 +17,15 @@ let package = Package(
             dependencies: ["AXSwift"],
             path: "Sources/Alakeya",
             exclude: [
-                "Overlay/AgentWorkspaceView.swift.bak"
+                "CLI",
+                "Overlay/AgentWorkspaceView.swift.bak",
+                "AI/CodeGenerationExpert.swift",
+                "AI/GoDan9IntelligenceCore.swift",
+                "AI/ProgrammingKnowledgeBase.swift",
+                "Research/AcademicSearchIntegration.swift",
+                "Resources/ALAKEYA_logo_transparent.png",
+                "Resources/logo.png",
+                "Resources/log-al.png",
             ],
             resources: [
                 .copy("Core/Instructions"),

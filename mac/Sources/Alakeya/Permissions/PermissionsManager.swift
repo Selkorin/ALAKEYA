@@ -18,23 +18,45 @@ final class PermissionsManager {
     // ── status ────────────────────────────────────────────
     var accessibilityGranted: Bool { AXIsProcessTrusted() }
 
-    var screenRecordingGranted: Bool { CGPreflightScreenCaptureAccess() }
+    var screenRecordingGranted: Bool {
+        CGPreflightScreenCaptureAccess()
+    }
 
     var microphoneGranted: Bool {
         AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
     }
 
     // ── requests ──────────────────────────────────────────
-    /// Shows the system Accessibility prompt the first time.
+    /// Request Accessibility permission WITHOUT showing system prompt.
+    /// Checks current status and only opens settings if permission is missing.
+    /// Returns true if permission is granted, false otherwise.
+    /// After granting permission in System Settings, the app needs to be restarted.
     @discardableResult
     func requestAccessibility() -> Bool {
-        let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-        return AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
+        // First check without triggering prompt
+        if AXIsProcessTrusted() {
+            return true
+        }
+
+        // Permission not granted - open settings
+        openSettings(.accessibility)
+        return false
     }
 
+    /// Request Screen Recording permission WITHOUT showing system prompt.
+    /// Checks current status and only opens settings if permission is missing.
+    /// Returns true if permission is granted, false otherwise.
+    /// After granting permission in System Settings, the app needs to be restarted.
     @discardableResult
     func requestScreenRecording() -> Bool {
-        CGRequestScreenCaptureAccess()
+        // First check without triggering anything
+        if CGPreflightScreenCaptureAccess() {
+            return true
+        }
+
+        // Permission not granted - open settings
+        openSettings(.screenRecording)
+        return false
     }
 
     func requestMicrophone() async -> Bool {

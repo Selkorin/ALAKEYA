@@ -26,6 +26,28 @@ enum LocalBusinessLeadValidator {
         return digits.count >= 10
     }
 
+    static func normalizePhone(_ raw: String) -> String {
+        let s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isValidPhone(s) else { return "" }
+        var digits = String(s.filter { $0.isNumber })
+        if digits.count == 11, digits.hasPrefix("8") {
+            digits.removeFirst()
+            digits = "7" + digits
+        } else if digits.count == 10 {
+            digits = "7" + digits
+        }
+        guard digits.count == 11, digits.hasPrefix("7") else { return s }
+        let start = digits.index(after: digits.startIndex)
+        let a = digits[start..<digits.index(start, offsetBy: 3)]
+        let bStart = digits.index(start, offsetBy: 3)
+        let b = digits[bStart..<digits.index(bStart, offsetBy: 3)]
+        let cStart = digits.index(bStart, offsetBy: 3)
+        let c = digits[cStart..<digits.index(cStart, offsetBy: 2)]
+        let dStart = digits.index(cStart, offsetBy: 2)
+        let d = digits[dStart..<digits.index(dStart, offsetBy: 2)]
+        return "+7 (\(a)) \(b)-\(c)-\(d)"
+    }
+
     // MARK: - Website
 
     /// Classify a website URL/string into WebsiteStatus.
@@ -77,6 +99,8 @@ enum LocalBusinessLeadValidator {
                 out.notes += out.notes.isEmpty ? "Телефон скрыт в источнике" : "; Телефон скрыт"
                 out.confidence = max(0, out.confidence - 0.2)
             }
+        } else {
+            out.phone = normalizePhone(out.phone)
         }
 
         // Classify website
@@ -91,6 +115,32 @@ enum LocalBusinessLeadValidator {
         }
 
         return out
+    }
+
+    static func hasUsableName(_ raw: String) -> Bool {
+        let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard name.count >= 2 else { return false }
+        let lower = name.lowercased()
+        let junkPatterns = [
+            #"^[-—]+$"#,
+            #"^https?://"#,
+            #"\.ru$|\.com$|\.рф$"#,
+            #"яндекс|google|2гис|duckduckgo|поиск|карты|captcha|капч[аиу]"#,
+            #"подтвердите[, ]+что|не робот|запросы отправляли вы|robot check|verify you are human|unusual traffic|access denied|доступ ограничен"#,
+            #"открыть|показать|подробнее|перейти|маршрут"#,
+            #"%[0-9a-f]{2}"#,
+        ]
+        return !junkPatterns.contains {
+            lower.range(of: $0, options: [.regularExpression, .caseInsensitive]) != nil
+        }
+    }
+
+    static func isActionable(_ lead: LocalBusinessLead, requirePhone: Bool) -> Bool {
+        guard hasUsableName(lead.name) else { return false }
+        if requirePhone {
+            return isValidPhone(lead.phone)
+        }
+        return !lead.phone.isEmpty || !lead.address.isEmpty || !lead.website.isEmpty
     }
 
     // MARK: - Deduplication key

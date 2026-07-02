@@ -34,7 +34,8 @@ struct LocalBusinessQuery {
         // ── City extraction ───────────────────────────────────
         let cityPatterns: [(pattern: String, group: Int)] = [
             (#"(?:в|из|по|для)\s+([А-ЯЁ][а-яёА-ЯЁ]+(?:\s+[А-ЯЁ][а-яёА-ЯЁ]+)?)\b"#, 1),
-            (#"(Севастопол[еьи]|Ялт[еаи]|Москв[еаи]|Санкт-Петербург[еа]?|Симферопол[еьи]|Евпатори[иея]|Феодоси[иея]|Керч[иьею]|Алушт[еаи]|Судак[еа]?)"#, 0),
+            (#"(?:отел(?:ь|я|и|ей|ям|ями|ях)?|гостиниц[аы]?|санатори[йияев]+|курорт[а-я]*)\s+([А-ЯЁ][а-яёА-ЯЁ\-]+(?:\s+[А-ЯЁ][а-яёА-ЯЁ\-]+){0,2})\b"#, 1),
+            (#"(Севастопол[еьи]|Ялт[еаи]|Москв[еаи]|Санкт-Петербург[еа]?|Симферопол[еьи]|Евпатори[иея]|Феодоси[иея]|Керч[иьею]|Алушт[еаи]|Судак[еа]?|Крым[аеу]?|Краснодарск(?:ий|ого|ом)\s+кра[йяе]|Московск(?:ая|ой|ую)\s+област[ьи]|Ленинградск(?:ая|ой|ую)\s+област[ьи])"#, 0),
         ]
         var city: String? = nil
         for (pattern, group) in cityPatterns {
@@ -83,6 +84,10 @@ struct LocalBusinessQuery {
         if lower.range(of: #"яндекс.?карт|yandex.?maps?"#, options: [.regularExpression, .caseInsensitive]) != nil {
             sources.append(.yandexMaps)
         }
+        if lower.range(of: #"\bяндекс\b|yandex"#, options: [.regularExpression, .caseInsensitive]) != nil,
+           !sources.contains(.yandexMaps) {
+            sources.append(.yandexSearch)
+        }
         if lower.range(of: #"2гис|2gis"#, options: [.regularExpression, .caseInsensitive]) != nil {
             sources.append(.twoGis)
         }
@@ -93,7 +98,7 @@ struct LocalBusinessQuery {
             if !sources.contains(.yandexMaps) { sources.append(.yandexMaps) }
         }
         if sources.isEmpty {
-            sources = [.yandexMaps, .twoGis, .yandexSearch, .googleSearch]
+            sources = [.twoGis]
         }
 
         // ── Export format ─────────────────────────────────────
@@ -172,6 +177,8 @@ struct LocalBusinessQuery {
     }
 
     private static func normalizeCityName(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let titleCased = trimmed.prefix(1).uppercased() + trimmed.dropFirst().lowercased()
         let map: [String: String] = [
             "Севастополе": "Севастополь", "Севастополя": "Севастополь",
             "Ялте": "Ялта", "Ялты": "Ялта",
@@ -180,7 +187,14 @@ struct LocalBusinessQuery {
             "Симферополе": "Симферополь", "Симферополя": "Симферополь",
             "Евпатории": "Евпатория", "Феодосии": "Феодосия",
             "Керчи": "Керчь", "Алуште": "Алушта", "Судаке": "Судак",
+            "Крыма": "Крым", "Крыму": "Крым", "Крыме": "Крым",
+            "Краснодарского края": "Краснодарский край",
+            "Краснодарском крае": "Краснодарский край",
+            "Московской области": "Московская область",
+            "Московскую область": "Московская область",
+            "Ленинградской области": "Ленинградская область",
+            "Ленинградскую область": "Ленинградская область",
         ]
-        return map[raw] ?? raw
+        return map[trimmed] ?? map[String(titleCased)] ?? String(titleCased)
     }
 }
